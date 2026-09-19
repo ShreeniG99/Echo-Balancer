@@ -56,3 +56,24 @@ def default_plant_params() -> PlantParams:
         Jpsi=Jpsi, Jphi=Jphi, Jm=Jm, Rm=Rm, Kb=Kb, Kt=Kt,
         n=n, fm=fm, fw=fw,
     )
+
+
+@dataclass(frozen=True)
+class LQRBalanceParams:
+    """Balance-LQR state weights, on the planar model
+    [theta, psi, theta_dot, psi_dot], input u = v_l + v_r.
+
+    CLAUDE.md section 6.1's sanity-check example is the only LQR design
+    point the spec gives, so it's also the default here.
+    """
+
+    Q_theta: float      # weight on theta (wheel position)
+    Q_psi: float        # weight on psi (body pitch) -- dominant term
+    Q_theta_dot: float  # weight on theta_dot
+    Q_psi_dot: float    # weight on psi_dot
+    R: float            # weight on u = v_l + v_r
+
+
+def default_lqr_balance_params() -> LQRBalanceParams:
+    """CLAUDE.md section 6.1: Q=diag(1, 1e3, 1, 1), R=1e2."""
+    return LQRBalanceParams(Q_theta=1.0, Q_psi=1e3, Q_theta_dot=1.0, Q_psi_dot=1.0, R=1e2)
