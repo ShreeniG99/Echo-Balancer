@@ -11,6 +11,13 @@ completely at linearization: common-mode drive (v_l + v_r) only ever affects
 theta/psi, differential drive (v_r - v_l) only ever affects phi. This module
 computes each block directly rather than deriving one large symbolic
 Jacobian by hand.
+
+Note on why A(psi)'s own psi-dependence is safely ignored: by the product
+rule, d/dx[A^-1(x) b(x)] = A^-1 db/dx - A^-1 (dA/dx) A^-1 b. The second term
+vanishes here because b(x)=0 exactly at the upright equilibrium (zero voltage,
+zero velocities, zero gravity torque at psi=0) — so only b's derivative matters,
+and A^-1 can be evaluated once at the base point. This is exact, not an
+approximation.
 """
 
 import numpy as np
