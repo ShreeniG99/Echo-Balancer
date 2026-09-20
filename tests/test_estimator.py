@@ -38,17 +38,71 @@ def test_measurement_matrix_values():
 def test_process_and_measurement_noise_shapes_and_values():
     sensor_p = default_sensor_params()
     est_p = default_estimator_params()
+    dt = 0.005
 
-    Q = process_noise(sensor_p, est_p, dt=0.005)
+    Q = process_noise(sensor_p, est_p, dt)
     R = measurement_noise(sensor_p)
     P0 = initial_covariance(est_p)
 
     assert Q.shape == (5, 5)
     assert R.shape == (3, 3)
     assert P0.shape == (5, 5)
-    assert Q[4, 4] == sensor_p.gyro_bias_walk**2 * 0.005
-    assert R[1, 1] == sensor_p.sigma_gyro**2
-    assert R[2, 2] == sensor_p.sigma_accel**2
+
+    np.testing.assert_allclose(
+        np.diag(Q),
+        [est_p.Q_theta, est_p.Q_psi, est_p.Q_theta_dot, est_p.Q_psi_dot, sensor_p.gyro_bias_walk**2 * dt],
+    )
+    step = 2 * np.pi / sensor_p.encoder_cpr
+    np.testing.assert_allclose(
+        np.diag(R), [step**2 / 12.0, sensor_p.sigma_gyro**2, sensor_p.sigma_accel**2]
+    )
+    np.testing.assert_allclose(
+        np.diag(P0),
+        [est_p.P0_theta, est_p.P0_psi, est_p.P0_theta_dot, est_p.P0_psi_dot, est_p.P0_bg],
+    )
+
+
+def test_predict_matches_direct_formula():
+    Ad = np.array([[1.0, 0.5], [0.0, 1.0]])
+    Bd = np.array([0.1, 0.2])
+    Q = np.diag([0.01, 0.02])
+    state = KalmanState(x_hat=np.array([1.0, 2.0]), P=np.diag([0.5, 0.5]))
+    u = 3.0
+
+    predicted = predict(state, Ad, Bd, u, Q)
+
+    expected_x = Ad @ state.x_hat + Bd * u
+    expected_P = Ad @ state.P @ Ad.T + Q
+    np.testing.assert_allclose(predicted.x_hat, expected_x)
+    np.testing.assert_allclose(predicted.P, expected_P)
+
+
+def test_discretize_planar_block_matches_direct_ode_integration():
+    """Independent ground truth: integrate dx/dt = A_planar @ x + B_planar * u
+    directly with scipy.integrate.solve_ivp over one dt, and compare against
+    Ad[:4,:4] @ x0 + Bd[:4] * u."""
+    from scipy.integrate import solve_ivp
+
+    from sim.linearize import linearize_planar
+
+    p = default_plant_params()
+    dt = 0.005
+    A_planar, B_planar = linearize_planar(p)
+
+    Ad, Bd = discretize(p, dt)
+
+    x0 = np.array([0.01, -0.02, 0.03, -0.04])
+    u = 0.5
+
+    def rhs(t, x):
+        return A_planar @ x + B_planar * u
+
+    sol = solve_ivp(rhs, [0, dt], x0, rtol=1e-12, atol=1e-14)
+    x_direct = sol.y[:, -1]
+
+    x_via_discretize = Ad[:4, :4] @ x0 + Bd[:4] * u
+
+    np.testing.assert_allclose(x_via_discretize, x_direct, rtol=1e-6, atol=1e-9)
 
 
 def test_update_never_increases_uncertainty():

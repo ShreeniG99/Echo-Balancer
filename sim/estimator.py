@@ -14,7 +14,7 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.linalg import expm
 
-from sim.linearize import linearize
+from sim.linearize import linearize_planar
 from sim.params import EstimatorParams, PlantParams, SensorParams
 
 
@@ -29,10 +29,7 @@ def discretize(p: PlantParams, dt: float) -> tuple[np.ndarray, np.ndarray]:
     with no restoring term) -- the same reason a plain
     Bd = A^-1(Ad - I)B formula would fail here.
     """
-    A6, B6 = linearize(p)
-    idx = [0, 1, 3, 4]  # theta, psi, theta_dot, psi_dot
-    A_planar = A6[np.ix_(idx, idx)]
-    B_planar = B6[idx, 0]
+    A_planar, B_planar = linearize_planar(p)
 
     A_aug = np.zeros((5, 5))
     A_aug[:4, :4] = A_planar
