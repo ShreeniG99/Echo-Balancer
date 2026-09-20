@@ -77,3 +77,79 @@ class LQRBalanceParams:
 def default_lqr_balance_params() -> LQRBalanceParams:
     """CLAUDE.md section 6.1: Q=diag(1, 1e3, 1, 1), R=1e2."""
     return LQRBalanceParams(Q_theta=1.0, Q_psi=1e3, Q_theta_dot=1.0, Q_psi_dot=1.0, R=1e2)
+
+
+@dataclass(frozen=True)
+class SensorParams:
+    """Sensor noise model (CLAUDE.md section 7). All values are starting
+    points, not measured/calibrated hardware specs.
+
+    ultrasonic_* fields are not yet consumed by any sensor function -- the
+    ultrasonic model needs 2D corridor ray-casting (sim/world.py, build
+    order step 5) -- but CLAUDE.md section 7 says all sigma values belong
+    here regardless, so they're recorded now.
+    """
+
+    sigma_gyro: float               # rad/s, gyro white noise std per sample
+    gyro_bias_walk: float           # rad/s/sqrt(s), gyro bias random-walk rate
+    sigma_accel: float              # rad, accelerometer-derived tilt noise std
+    encoder_cpr: float              # counts/rev, encoder resolution
+    ultrasonic_sigma: float         # m, ultrasonic range noise std
+    ultrasonic_range_min: float     # m
+    ultrasonic_range_max: float     # m
+    ultrasonic_dropout_prob: float  # probability a reading returns max range
+    ultrasonic_rate_hz: float       # Hz, ultrasonic sample rate
+
+
+def default_sensor_params() -> SensorParams:
+    """CLAUDE.md section 7 starting-point values."""
+    return SensorParams(
+        sigma_gyro=0.005,
+        gyro_bias_walk=1e-4,
+        sigma_accel=0.02,
+        encoder_cpr=360.0,
+        ultrasonic_sigma=0.003,
+        ultrasonic_range_min=0.02,
+        ultrasonic_range_max=4.0,
+        ultrasonic_dropout_prob=0.02,
+        ultrasonic_rate_hz=20.0,
+    )
+
+
+@dataclass(frozen=True)
+class EstimatorParams:
+    """Balance-KF tuning for the 5-state model
+    [theta, psi, theta_dot, psi_dot, b_g]: process noise on the four planar
+    states, and initial covariance. The gyro-bias process noise is derived
+    from SensorParams.gyro_bias_walk and the control-loop dt, not tuned
+    here (see sim/estimator.py::process_noise).
+
+    These defaults were found empirically against the section 11 NIS
+    consistency test -- see docs/superpowers/plans/2026-09-20-sensors-
+    estimator-nis-step3.md for the tuning process and why these values
+    (not some other combination) were chosen.
+    """
+
+    Q_theta: float
+    Q_psi: float
+    Q_theta_dot: float
+    Q_psi_dot: float
+    P0_theta: float
+    P0_psi: float
+    P0_theta_dot: float
+    P0_psi_dot: float
+    P0_bg: float
+
+
+def default_estimator_params() -> EstimatorParams:
+    return EstimatorParams(
+        Q_theta=1e-8,
+        Q_psi=1e-8,
+        Q_theta_dot=1e-6,
+        Q_psi_dot=1e-6,
+        P0_theta=1e-4,
+        P0_psi=1e-4,
+        P0_theta_dot=1e-4,
+        P0_psi_dot=1e-4,
+        P0_bg=1e-6,
+    )
