@@ -1,9 +1,9 @@
 import numpy as np
 
-from sim.control import design_lqr_balance
-from sim.integrate import simulate
+from sim.control import design_lqr_balance, design_lqr_speed_servo
+from sim.integrate import rk4_step, simulate
 from sim.linearize import linearize_planar
-from sim.params import default_lqr_balance_params, default_plant_params
+from sim.params import default_lqr_balance_params, default_plant_params, default_speed_servo_params
 from sim.plant import f as plant_f
 
 
@@ -72,3 +72,67 @@ def test_recovers_from_10_degree_pitch_in_nonlinear_sim():
     assert np.max(np.abs(psi_deg)) <= psi0_deg + 1e-6
     # Settles close to upright well before the fall threshold matters.
     assert abs(psi_deg[-1]) < 0.1
+
+
+def test_speed_servo_gain_matches_reference():
+    p = default_plant_params()
+    sp = default_speed_servo_params()
+
+    K = design_lqr_speed_servo(p, sp)
+
+    # Verified against this repo's actual sim/linearize.py before this plan
+    # was written -- see plan doc "Design decision: a real speed servo LQR
+    # is required".
+    target = np.array([-0.90627756, -53.30474389, -2.31169767, -5.01088606, -0.31622777])
+    np.testing.assert_allclose(K, target, rtol=1e-4)
+
+
+def test_speed_servo_closed_loop_poles_stable():
+    p = default_plant_params()
+    sp = default_speed_servo_params()
+    K = design_lqr_speed_servo(p, sp)
+
+    A_planar, B_planar = linearize_planar(p)
+    A_aug = np.zeros((5, 5))
+    A_aug[:4, :4] = A_planar
+    A_aug[4, 0] = 1.0
+    B_aug = np.zeros(5)
+    B_aug[:4] = B_planar
+
+    eigs = np.linalg.eigvals(A_aug - np.outer(B_aug, K))
+    assert np.all(eigs.real < 0)
+
+
+def test_speed_servo_tracks_constant_forward_speed_in_nonlinear_sim():
+    """Verified pre-plan: steady-state theta_dot tracking error was
+    0.006/0.018/0.030 at theta_dot_ref=1/3/5 rad/s over 15s runs -- a
+    generous margin (0.1) is used here, well above any of those, to avoid
+    a flaky bound while still catching a real transcription bug (e.g. the
+    42% error the non-integral design produced, which this margin would
+    clearly reject)."""
+    p = default_plant_params()
+    sp = default_speed_servo_params()
+    K = design_lqr_speed_servo(p, sp)
+
+    dt_plant, dt_control, n_sub = 0.001, 0.005, 5
+    theta_dot_ref = 3.0
+
+    def xdotf(x, uu):
+        return plant_f(x, uu[0], uu[1], p)
+
+    x = np.zeros(6)
+    theta_ref = 0.0
+    z = 0.0
+    n_steps = int(15.0 / dt_control)
+    theta_dot_hist = []
+    for _ in range(n_steps):
+        theta_ref += theta_dot_ref * dt_control
+        err = np.array([x[0] - theta_ref, x[1], x[3] - theta_dot_ref, x[4], z])
+        u = -K @ err
+        z += (x[0] - theta_ref) * dt_control
+        theta_dot_hist.append(x[3])
+        for _ in range(n_sub):
+            x = rk4_step(xdotf, x, (u / 2, u / 2), dt_plant)
+
+    steady_theta_dot = np.mean(theta_dot_hist[-200:])
+    assert abs(steady_theta_dot - theta_dot_ref) < 0.1
