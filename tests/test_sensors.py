@@ -1,7 +1,7 @@
 import numpy as np
 
 from sim.params import default_plant_params, default_sensor_params
-from sim.sensors import accelerometer, encoder, gyro
+from sim.sensors import accelerometer, encoder, gyro, ultrasonic
 
 
 def test_encoder_reads_theta_minus_psi_when_no_yaw():
@@ -92,3 +92,38 @@ def test_encoder_quantizes_per_wheel_before_averaging():
     # averaging is what's actually implemented).
     assert not np.isclose(reading, average_then_quantize)
     assert np.isclose(reading, 0.5 * step)
+
+
+def test_ultrasonic_dropout_rate_matches_spec():
+    sp = default_sensor_params()
+    rng = np.random.default_rng(0)
+
+    samples = [ultrasonic(1.0, sp, rng) for _ in range(20000)]
+    frac_at_max_range = np.mean(np.isclose(samples, sp.ultrasonic_range_max))
+
+    assert abs(frac_at_max_range - sp.ultrasonic_dropout_prob) < 0.01
+
+
+def test_ultrasonic_noise_mean_and_std_excluding_dropouts():
+    sp = default_sensor_params()
+    rng = np.random.default_rng(0)
+    true_distance = 1.0
+
+    non_dropout_samples = []
+    while len(non_dropout_samples) < 20000:
+        reading = ultrasonic(true_distance, sp, rng)
+        if not np.isclose(reading, sp.ultrasonic_range_max):
+            non_dropout_samples.append(reading)
+    samples = np.array(non_dropout_samples)
+
+    assert abs(np.mean(samples) - true_distance) < 0.001
+    assert abs(np.std(samples) - sp.ultrasonic_sigma) < 0.001
+
+
+def test_ultrasonic_clips_out_of_range_true_distance():
+    sp = default_sensor_params()
+    rng = np.random.default_rng(0)
+
+    reading = ultrasonic(100.0, sp, rng)
+
+    assert reading == sp.ultrasonic_range_max

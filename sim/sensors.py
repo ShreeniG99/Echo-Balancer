@@ -74,3 +74,13 @@ def encoder(
     q_l = np.round((theta_l - psi) / step) * step
     q_r = np.round((theta_r - psi) / step) * step
     return (q_l + q_r) / 2.0
+
+
+def ultrasonic(true_distance: float, sensor_p: SensorParams, rng: np.random.Generator) -> float:
+    """HC-SR04 model (CLAUDE.md section 7): 20Hz, range 0.02-4m, sigma~3mm,
+    2% dropout probability (returns max range instead of a noisy reading).
+    """
+    if rng.random() < sensor_p.ultrasonic_dropout_prob:
+        return sensor_p.ultrasonic_range_max
+    measured = true_distance + rng.normal(0.0, sensor_p.ultrasonic_sigma)
+    return float(np.clip(measured, sensor_p.ultrasonic_range_min, sensor_p.ultrasonic_range_max))
