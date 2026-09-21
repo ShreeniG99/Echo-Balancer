@@ -202,3 +202,40 @@ If behind schedule after milestone 1: cut wall-following first.
 - A. Shojaei, "Conformal Recovery-Deadline Certificates for Runtime Assurance of Adapting Controllers," arXiv 2606.25371: closest recent work (pendulum, fallback timing).
 - "Cost-Aware Adaptive Conformal Inference for Runtime Assurance in Dynamic Environments," arXiv 2605.24463: risk-scaled caution.
 - Gilliam, Woerner, Gonciulea, "Grover Adaptive Search for Constrained Polynomial Binary Optimization," *Quantum* 5:428, 2021: GAS / `GroverOptimizer`.
+
+## 16. Persistent project knowledge (read before scanning the repo)
+
+This project keeps durable, cross-session knowledge in `project-context/`, independent of any single Claude conversation, so switching between models (Opus/Sonnet/Haiku) or between Claude Code and Claude Chat doesn't require re-explaining the project.
+
+- **`project-context/MODEL_HANDOFF.md`** — start here. Compact, current-as-of-last-update summary of objective, state, decisions, failures, and next steps.
+- **`project-context/CURRENT_STATE.md`** — what's implemented, what passes, what's next.
+- **`project-context/DECISIONS.md`** — durable decisions with their reasons; don't silently reverse one without understanding why it exists.
+- **`project-context/FAILED_APPROACHES.md`** — approaches already tried and rejected, with why. Do not re-suggest these.
+- **`project-context/OPEN_PROBLEMS.md`** — confirmed problems vs. suspected vs. unknown. Don't treat a suspicion as a fact.
+- **`project-context/PROJECT_CONTEXT.md`** — the fuller architecture/terminology/constraints reference.
+- **`project-context/CLAUDE_PROJECT_CONTEXT.md`** — the file to upload to a Claude Project's knowledge base for Claude Chat sessions; not meant for Claude Code (which has the repo directly).
+
+**Working rules:**
+1. For a codebase-structure question, query the knowledge graph (below) or read `project-context/MODEL_HANDOFF.md` before scanning the whole repo.
+2. Distinguish confirmed facts from assumptions — `OPEN_PROBLEMS.md`'s three-way split exists for this reason; preserve it rather than collapsing "suspected" into "confirmed."
+3. Don't overwrite an entry in `DECISIONS.md` or `FAILED_APPROACHES.md` without understanding why it's there — these encode real debugging history (see e.g. the Kalman filter tuning story), not arbitrary choices.
+4. Reflect real state changes back into these files as you work (see "When to update" below) — they're only useful if kept current.
+
+**When to update `project-context/`** (not for every trivial exchange):
+- Architecture changes (a new module, a changed data flow).
+- An important decision is made → `DECISIONS.md`.
+- An approach fails → `FAILED_APPROACHES.md`.
+- A major bug is fixed, or project state changes substantially → `CURRENT_STATE.md`.
+- A new external dependency is introduced → `PROJECT_CONTEXT.md` + `CURRENT_STATE.md`.
+- The current task changes materially → `MODEL_HANDOFF.md`.
+- At a natural stopping point in a session, update `MODEL_HANDOFF.md` so the next model (possibly a different one) can continue without the prior conversation.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

@@ -1,0 +1,326 @@
+{
+  "communities": {
+    "0": [
+      "scipy_stats",
+      "sim_estimator_discretize",
+      "sim_estimator_initial_covariance",
+      "sim_estimator_kalmanstate",
+      "sim_estimator_measurement_matrix",
+      "sim_estimator_measurement_noise",
+      "sim_estimator_predict",
+      "sim_estimator_process_noise",
+      "sim_estimator_py_ndarray",
+      "sim_estimator_rationale_22",
+      "sim_estimator_rationale_47",
+      "sim_estimator_rationale_62",
+      "sim_estimator_rationale_70",
+      "sim_estimator_rationale_98",
+      "sim_estimator_update",
+      "tests_test_estimator",
+      "tests_test_estimator_py_ndarray",
+      "tests_test_estimator_rationale_119",
+      "tests_test_estimator_rationale_133",
+      "tests_test_estimator_rationale_146",
+      "tests_test_estimator_rationale_201",
+      "tests_test_estimator_rationale_91",
+      "tests_test_estimator_run_nominal_closed_loop",
+      "tests_test_estimator_run_nominal_closed_loop_xdotf",
+      "tests_test_estimator_test_discretize_bias_state_is_a_pure_integrator",
+      "tests_test_estimator_test_discretize_planar_block_matches_direct_ode_integration",
+      "tests_test_estimator_test_discretize_planar_block_matches_direct_ode_integration_rhs",
+      "tests_test_estimator_test_measurement_matrix_values",
+      "tests_test_estimator_test_nis_consistent_on_nominal_60s_run",
+      "tests_test_estimator_test_nis_matches_hand_computed_scalar_example",
+      "tests_test_estimator_test_predict_matches_direct_formula",
+      "tests_test_estimator_test_process_and_measurement_noise_shapes_and_values",
+      "tests_test_estimator_test_update_never_increases_uncertainty"
+    ],
+    "1": [
+      "dataclasses",
+      "numpy",
+      "scipy_linalg",
+      "sim_control",
+      "sim_control_design_lqr_balance",
+      "sim_control_py_ndarray",
+      "sim_control_rationale_1",
+      "sim_control_rationale_17",
+      "sim_estimator",
+      "sim_estimator_rationale_1",
+      "sim_linearize",
+      "sim_linearize_linearize",
+      "sim_linearize_linearize_planar",
+      "sim_linearize_py_ndarray",
+      "sim_linearize_rationale_1",
+      "sim_linearize_rationale_29",
+      "sim_linearize_rationale_92",
+      "sim_params",
+      "sim_params_plantparams",
+      "sim_params_rationale_1",
+      "sim_params_rationale_12",
+      "sim_plant",
+      "sim_plant_rationale_1",
+      "tests_test_control",
+      "tests_test_control_test_lqr_closed_loop_poles_are_stable",
+      "tests_test_control_test_lqr_gain_matches_sanity_value"
+    ],
+    "2": [
+      "sim_params_default_plant_params",
+      "sim_params_rationale_35",
+      "sim_plant_f",
+      "sim_plant_py_ndarray",
+      "tests_test_control_rationale_33",
+      "tests_test_control_test_recovers_from_10_degree_pitch_in_nonlinear_sim",
+      "tests_test_control_test_recovers_from_10_degree_pitch_in_nonlinear_sim_u_fn",
+      "tests_test_control_test_recovers_from_10_degree_pitch_in_nonlinear_sim_xdot",
+      "tests_test_linearize",
+      "tests_test_linearize_numeric_jacobian",
+      "tests_test_linearize_rationale_49",
+      "tests_test_linearize_rationale_9",
+      "tests_test_linearize_test_numeric_jacobian_matches_analytic",
+      "tests_test_linearize_test_planar_eigenvalues_match_sanity_values",
+      "tests_test_linearize_test_planar_is_a_consistent_reduction_of_the_full_system",
+      "tests_test_plant",
+      "tests_test_plant_py_ndarray",
+      "tests_test_plant_rationale_11",
+      "tests_test_plant_rationale_26",
+      "tests_test_plant_test_energy_conserved_no_input_no_friction",
+      "tests_test_plant_test_energy_conserved_no_input_no_friction_xdot",
+      "tests_test_plant_test_equilibrium_is_fixed_point",
+      "tests_test_plant_test_falls_without_control",
+      "tests_test_plant_test_falls_without_control_xdot",
+      "tests_test_plant_test_state_derivative_shape",
+      "tests_test_plant_total_energy"
+    ],
+    "3": [
+      "dynamicsfn",
+      "input",
+      "inputfn",
+      "sim_integrate",
+      "sim_integrate_py_ndarray",
+      "sim_integrate_rationale_1",
+      "sim_integrate_rationale_14",
+      "sim_integrate_rationale_29",
+      "sim_integrate_rk4_step",
+      "sim_integrate_simulate",
+      "state",
+      "tests_test_integrate",
+      "tests_test_integrate_rationale_27",
+      "tests_test_integrate_rationale_7",
+      "tests_test_integrate_test_rk4_step_is_fourth_order_accurate",
+      "tests_test_integrate_test_rk4_step_is_fourth_order_accurate_error_at",
+      "tests_test_integrate_test_rk4_step_is_fourth_order_accurate_xdot",
+      "tests_test_integrate_test_zero_order_hold_freezes_u_across_rk4_stages",
+      "tests_test_integrate_test_zero_order_hold_freezes_u_across_rk4_stages_u_fn",
+      "tests_test_integrate_test_zero_order_hold_freezes_u_across_rk4_stages_xdot",
+      "typing"
+    ],
+    "4": [
+      "sim_params_default_sensor_params",
+      "sim_params_rationale_105",
+      "sim_params_rationale_84",
+      "sim_params_sensorparams",
+      "sim_sensors",
+      "sim_sensors_accelerometer",
+      "sim_sensors_encoder",
+      "sim_sensors_gyro",
+      "sim_sensors_rationale_1",
+      "sim_sensors_rationale_22",
+      "sim_sensors_rationale_40",
+      "sim_sensors_rationale_61",
+      "tests_test_sensors",
+      "tests_test_sensors_rationale_69",
+      "tests_test_sensors_test_accelerometer_is_corrupted_by_linear_acceleration",
+      "tests_test_sensors_test_accelerometer_reads_psi_at_equilibrium_on_average",
+      "tests_test_sensors_test_encoder_quantizes_per_wheel_before_averaging",
+      "tests_test_sensors_test_encoder_quantizes_to_step_multiples",
+      "tests_test_sensors_test_encoder_reads_theta_minus_psi_when_no_yaw",
+      "tests_test_sensors_test_gyro_mean_and_std_match_spec_over_many_samples"
+    ],
+    "5": [
+      "math",
+      "sim_params_default_estimator_params",
+      "sim_params_default_lqr_balance_params",
+      "sim_params_estimatorparams",
+      "sim_params_lqrbalanceparams",
+      "sim_params_rationale_121",
+      "sim_params_rationale_63",
+      "sim_params_rationale_78",
+      "tests_test_params",
+      "tests_test_params_rationale_1",
+      "tests_test_params_test_default_estimator_params",
+      "tests_test_params_test_default_lqr_balance_params",
+      "tests_test_params_test_default_plant_params_derived_quantities",
+      "tests_test_params_test_default_sensor_params",
+      "tests_test_params_test_estimator_params_is_frozen",
+      "tests_test_params_test_lqr_balance_params_is_frozen",
+      "tests_test_params_test_plant_params_is_frozen",
+      "tests_test_params_test_sensor_params_is_frozen"
+    ],
+    "6": [
+      "pkg_echo_balancer"
+    ],
+    "7": [
+      "sim_init"
+    ],
+    "8": [
+      "tests_init"
+    ]
+  },
+  "cohesion": {
+    "0": 0.11742424242424243,
+    "1": 0.16307692307692306,
+    "2": 0.13538461538461538,
+    "3": 0.14285714285714285,
+    "4": 0.2,
+    "5": 0.1503267973856209,
+    "6": 1.0,
+    "7": 1.0,
+    "8": 1.0
+  },
+  "gods": [
+    {
+      "id": "sim_params_default_plant_params",
+      "label": "default_plant_params()",
+      "degree": 29
+    },
+    {
+      "id": "tests_test_estimator_run_nominal_closed_loop",
+      "label": "_run_nominal_closed_loop()",
+      "degree": 23
+    },
+    {
+      "id": "sim_plant_f",
+      "label": "f()",
+      "degree": 16
+    },
+    {
+      "id": "sim_params_default_sensor_params",
+      "label": "default_sensor_params()",
+      "degree": 16
+    },
+    {
+      "id": "sim_params_plantparams",
+      "label": "PlantParams",
+      "degree": 15
+    },
+    {
+      "id": "sim_linearize_linearize_planar",
+      "label": "linearize_planar()",
+      "degree": 15
+    },
+    {
+      "id": "sim_integrate_simulate",
+      "label": "simulate()",
+      "degree": 14
+    },
+    {
+      "id": "sim_control_design_lqr_balance",
+      "label": "design_lqr_balance()",
+      "degree": 12
+    },
+    {
+      "id": "sim_params_default_lqr_balance_params",
+      "label": "default_lqr_balance_params()",
+      "degree": 12
+    },
+    {
+      "id": "sim_params_sensorparams",
+      "label": "SensorParams",
+      "degree": 11
+    }
+  ],
+  "surprises": [
+    {
+      "source": "test_default_plant_params_derived_quantities()",
+      "target": "default_plant_params()",
+      "source_files": [
+        "tests/test_params.py",
+        "sim/params.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `test_default_plant_params_derived_quantities()` unexpectedly reaches hub `default_plant_params()`"
+    },
+    {
+      "source": "test_plant_params_is_frozen()",
+      "target": "default_plant_params()",
+      "source_files": [
+        "tests/test_params.py",
+        "sim/params.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `test_plant_params_is_frozen()` unexpectedly reaches hub `default_plant_params()`"
+    },
+    {
+      "source": "test_default_sensor_params()",
+      "target": "default_sensor_params()",
+      "source_files": [
+        "tests/test_params.py",
+        "sim/params.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `test_default_sensor_params()` unexpectedly reaches hub `default_sensor_params()`"
+    },
+    {
+      "source": "test_sensor_params_is_frozen()",
+      "target": "default_sensor_params()",
+      "source_files": [
+        "tests/test_params.py",
+        "sim/params.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `test_sensor_params_is_frozen()` unexpectedly reaches hub `default_sensor_params()`"
+    },
+    {
+      "source": "test_measurement_matrix_values()",
+      "target": "measurement_matrix()",
+      "source_files": [
+        "tests/test_estimator.py",
+        "sim/estimator.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; peripheral node `test_measurement_matrix_values()` unexpectedly reaches hub `measurement_matrix()`"
+    }
+  ],
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `default_plant_params()` connect `default_plant_params` to `test_estimator.py`, `params.py`, `default_sensor_params`, `test_params.py`?",
+      "why": "High betweenness centrality (0.185) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `_run_nominal_closed_loop()` connect `test_estimator.py` to `params.py`, `default_plant_params`, `simulate`, `default_sensor_params`, `test_params.py`?",
+      "why": "High betweenness centrality (0.129) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `rk4_step()` connect `simulate` to `test_estimator.py`?",
+      "why": "High betweenness centrality (0.101) - this node is a cross-community bridge."
+    },
+    {
+      "type": "verify_inferred",
+      "question": "Are the 7 inferred relationships involving `PlantParams` (e.g. with `design_lqr_balance()` and `discretize()`) actually correct?",
+      "why": "`PlantParams` has 7 INFERRED edges - model-reasoned connections that need verification."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `echo-balancer` to the rest of the system?",
+      "why": "1 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `test_estimator.py` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.11742424242424243 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `default_plant_params` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.13538461538461538 - nodes in this community are weakly interconnected."
+    }
+  ]
+}

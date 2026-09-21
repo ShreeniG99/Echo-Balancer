@@ -1,0 +1,236 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1789902452.2490826,
+    "seen": 1789902516.5941534,
+    "ast_hash": "3ac995fbf93552a991ecab9b63f776aa",
+    "semantic_hash": "3ac995fbf93552a991ecab9b63f776aa"
+  },
+  "pyproject.toml": {
+    "mtime": 1789830308.6704464,
+    "seen": 1789902516.59417,
+    "ast_hash": "bbcd56485d7fafe697337e2a67b6a922",
+    "semantic_hash": "bbcd56485d7fafe697337e2a67b6a922"
+  },
+  "sim/__init__.py": {
+    "mtime": 1789796613.9872053,
+    "seen": 1789902516.5941777,
+    "ast_hash": "3bab25a3e651a9e4a00473d2257b99f9",
+    "semantic_hash": "3bab25a3e651a9e4a00473d2257b99f9"
+  },
+  "sim/control.py": {
+    "mtime": 1789831520.3384936,
+    "seen": 1789902516.594181,
+    "ast_hash": "caaad3344c083de937c1aa4d152b6e4c",
+    "semantic_hash": "caaad3344c083de937c1aa4d152b6e4c"
+  },
+  "sim/estimator.py": {
+    "mtime": 1789888142.8737218,
+    "seen": 1789902516.5941846,
+    "ast_hash": "7a3348630bbb00b3fec73830361ffdf5",
+    "semantic_hash": "7a3348630bbb00b3fec73830361ffdf5"
+  },
+  "sim/integrate.py": {
+    "mtime": 1789798259.1587062,
+    "seen": 1789902516.5941877,
+    "ast_hash": "33ebc4135fbc700414030a0faab3ba5b",
+    "semantic_hash": "33ebc4135fbc700414030a0faab3ba5b"
+  },
+  "sim/linearize.py": {
+    "mtime": 1789831106.781926,
+    "seen": 1789902516.5941913,
+    "ast_hash": "debf8698abad45b0cbd6ada60f591d01",
+    "semantic_hash": "debf8698abad45b0cbd6ada60f591d01"
+  },
+  "sim/params.py": {
+    "mtime": 1789886237.5545247,
+    "seen": 1789902516.5941942,
+    "ast_hash": "7ca20d5156bdad37201d04813ba73bf7",
+    "semantic_hash": "7ca20d5156bdad37201d04813ba73bf7"
+  },
+  "sim/plant.py": {
+    "mtime": 1789797357.1020484,
+    "seen": 1789902516.5941975,
+    "ast_hash": "d327be000bb95c9c865c4edbad10e403",
+    "semantic_hash": "d327be000bb95c9c865c4edbad10e403"
+  },
+  "sim/sensors.py": {
+    "mtime": 1789886669.6021647,
+    "seen": 1789902516.5942006,
+    "ast_hash": "8e3a00ee3b36b14ccc722e08da0b172c",
+    "semantic_hash": "8e3a00ee3b36b14ccc722e08da0b172c"
+  },
+  "tests/__init__.py": {
+    "mtime": 1789796613.9872053,
+    "seen": 1789902516.5942035,
+    "ast_hash": "3bab25a3e651a9e4a00473d2257b99f9",
+    "semantic_hash": "3bab25a3e651a9e4a00473d2257b99f9"
+  },
+  "tests/test_control.py": {
+    "mtime": 1789831793.7853115,
+    "seen": 1789902516.5942075,
+    "ast_hash": "2be0f16a16e41d347d1e441a06eede94",
+    "semantic_hash": "2be0f16a16e41d347d1e441a06eede94"
+  },
+  "tests/test_estimator.py": {
+    "mtime": 1789888373.429885,
+    "seen": 1789902516.5942106,
+    "ast_hash": "bb47745b8fe726b7d691a659c00a3b9f",
+    "semantic_hash": "bb47745b8fe726b7d691a659c00a3b9f"
+  },
+  "tests/test_integrate.py": {
+    "mtime": 1789798072.568844,
+    "seen": 1789902516.5942135,
+    "ast_hash": "5f94d6724314707fb2c5356c629671c0",
+    "semantic_hash": "5f94d6724314707fb2c5356c629671c0"
+  },
+  "tests/test_linearize.py": {
+    "mtime": 1789830750.6468344,
+    "seen": 1789902516.5942163,
+    "ast_hash": "15a02d0b06b36aa3ad77312daba51514",
+    "semantic_hash": "15a02d0b06b36aa3ad77312daba51514"
+  },
+  "tests/test_params.py": {
+    "mtime": 1789886213.690341,
+    "seen": 1789902516.5942194,
+    "ast_hash": "74abbf374ccdba053ebdc830b246de65",
+    "semantic_hash": "74abbf374ccdba053ebdc830b246de65"
+  },
+  "tests/test_plant.py": {
+    "mtime": 1789798398.9886956,
+    "seen": 1789902516.594222,
+    "ast_hash": "8dd2cc76b6626d04ebc31f0c4bc9a325",
+    "semantic_hash": "8dd2cc76b6626d04ebc31f0c4bc9a325"
+  },
+  "tests/test_sensors.py": {
+    "mtime": 1789887371.6787064,
+    "seen": 1789902516.5942252,
+    "ast_hash": "18c9cc388d395eaee0fa3ee6a2528531",
+    "semantic_hash": "18c9cc388d395eaee0fa3ee6a2528531"
+  },
+  ".claude/CLAUDE.md": {
+    "mtime": 1789902452.2463362,
+    "seen": 1789902990.143457,
+    "ast_hash": "c232166e6492ba1ed955030b16979b05",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/SKILL.md": {
+    "mtime": 1789902452.241483,
+    "seen": 1789902990.1434636,
+    "ast_hash": "1656a8a8e4a05bbe69f32cd15de81e87",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/add-watch.md": {
+    "mtime": 1789902330.1697671,
+    "seen": 1789902990.1434674,
+    "ast_hash": "d59d027fe449f06aa03905a01184e779",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/exports.md": {
+    "mtime": 1789902330.1759024,
+    "seen": 1789902990.1434708,
+    "ast_hash": "9da2a2152e60a22f07f05fed5158f287",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/extraction-spec.md": {
+    "mtime": 1789902330.181949,
+    "seen": 1789902990.143475,
+    "ast_hash": "42fef56a01698118f7fd722acdadea34",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/github-and-merge.md": {
+    "mtime": 1789902330.2167125,
+    "seen": 1789902990.1434786,
+    "ast_hash": "cde13df085e4c492aeb7ba298a996d0d",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/hooks.md": {
+    "mtime": 1789902330.2199042,
+    "seen": 1789902990.143482,
+    "ast_hash": "3f545db6ce646650bb9de588f5512a27",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/query.md": {
+    "mtime": 1789902330.2239337,
+    "seen": 1789902990.1434858,
+    "ast_hash": "3c46f8ad006874260614ed8657d02307",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/transcribe.md": {
+    "mtime": 1789902330.2259438,
+    "seen": 1789902990.1434896,
+    "ast_hash": "67b6a5fa6c0974e18f60db9f8932fbd8",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/update.md": {
+    "mtime": 1789902330.2279644,
+    "seen": 1789902990.1434937,
+    "ast_hash": "9378bd03d56baaf78bd738ab3848f142",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1789902908.4664168,
+    "seen": 1789902990.1434975,
+    "ast_hash": "270c397d9fc4f2e8e09e6586774ce004",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-09-19-linearize-lqr-step2.md": {
+    "mtime": 1789830537.5783293,
+    "seen": 1789902990.1435008,
+    "ast_hash": "92ca18803fd0432b690286cf79c65afb",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-09-19-plant-model-step1.md": {
+    "mtime": 1789796367.0342245,
+    "seen": 1789902990.143504,
+    "ast_hash": "f77717ed52c1e44c73134825e3bc97fa",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-09-20-sensors-estimator-nis-step3.md": {
+    "mtime": 1789886146.7382774,
+    "seen": 1789902990.1435072,
+    "ast_hash": "5ce3bd1cd82e0823fd1a9b1103f8c700",
+    "semantic_hash": ""
+  },
+  "project-context/CLAUDE_PROJECT_CONTEXT.md": {
+    "mtime": 1789902879.2972896,
+    "seen": 1789902990.1435103,
+    "ast_hash": "574b1560e73e6518cea107878649befc",
+    "semantic_hash": ""
+  },
+  "project-context/CURRENT_STATE.md": {
+    "mtime": 1789902722.4498894,
+    "seen": 1789902990.1435137,
+    "ast_hash": "b036681534bfabb2aa045bb002aedf60",
+    "semantic_hash": ""
+  },
+  "project-context/DECISIONS.md": {
+    "mtime": 1789902765.4018445,
+    "seen": 1789902990.1435168,
+    "ast_hash": "1167a9d9ba6f00ca071970d6106de6d6",
+    "semantic_hash": ""
+  },
+  "project-context/FAILED_APPROACHES.md": {
+    "mtime": 1789902790.758454,
+    "seen": 1789902990.1435204,
+    "ast_hash": "572780c0dd8b6090f5432c97b46f02b1",
+    "semantic_hash": ""
+  },
+  "project-context/MODEL_HANDOFF.md": {
+    "mtime": 1789902849.9802396,
+    "seen": 1789902990.1435237,
+    "ast_hash": "9fc86c42e6a2d54bf453a5efac1e10ff",
+    "semantic_hash": ""
+  },
+  "project-context/OPEN_PROBLEMS.md": {
+    "mtime": 1789902814.5057337,
+    "seen": 1789902990.143527,
+    "ast_hash": "e931e5482380d4ccc8fdfaae99aad414",
+    "semantic_hash": ""
+  },
+  "project-context/PROJECT_CONTEXT.md": {
+    "mtime": 1789902692.459906,
+    "seen": 1789902990.14353,
+    "ast_hash": "210fbf05d1fb70f8096d3d5148da4d52",
+    "semantic_hash": ""
+  }
+}

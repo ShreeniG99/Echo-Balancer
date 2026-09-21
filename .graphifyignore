@@ -1,0 +1,14 @@
+# Third-party reference material (already excluded via .gitignore's /nxtway_gs/,
+# repeated here so graphify's own walk is explicit about it).
+/nxtway_gs/
+
+# Untracked reference PDFs (now organized under research/): still excluded
+# from the graph pending an LLM backend for semantic PDF extraction (none
+# configured in this environment). Remove these two lines once a backend is
+# available and you want them folded into the graph.
+/research/echo_balancer_research.pdf
+/research/echo_balancer_detailed (1).pdf
+
+# Local graphify state that shouldn't feed back into its own graph.
+/graphify-out/cache/
+/graphify-out/cost.json

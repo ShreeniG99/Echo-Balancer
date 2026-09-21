@@ -8,3 +8,8 @@ __pycache__/
 # locally for cross-checking sim/plant.py against the source, not redistributed.
 /nxtway_gs/
 /license.txt
+
+# Graphify: graphify-out/ itself is meant to be committed (shared code graph),
+# but per-machine LLM cost tracking and local query cache are not.
+/graphify-out/cost.json
+/graphify-out/cache/
