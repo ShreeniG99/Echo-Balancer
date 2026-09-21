@@ -1,9 +1,17 @@
-"""Balance controller (CLAUDE.md section 9).
+"""Controllers (CLAUDE.md section 9).
 
-This step implements only the balance LQR on the planar model
-[theta, psi, theta_dot, psi_dot] with u = v_l + v_r. The speed-servo
-integral term, yaw PD, and wall-following described in section 9 are not
-part of section 14 build-order step 2 and are not implemented here.
+design_lqr_balance: the balance LQR on the planar model
+[theta, psi, theta_dot, psi_dot] with u = v_l + v_r (build-order step 2).
+
+design_lqr_speed_servo: a separate 5-state integral-augmented LQR for
+forward-speed reference tracking (build-order step 5); does not modify
+or replace design_lqr_balance.
+
+yaw_p_control, wall_following_control, front_threshold_speed_adjust:
+the rest of section 9's wall-following stack (build-order step 5).
+yaw_p_control is proportional-only, not PD -- see YawControlParams'
+docstring and the plan doc's "Design decision: yaw control is
+proportional-only".
 """
 
 import numpy as np
