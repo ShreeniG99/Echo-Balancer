@@ -267,3 +267,73 @@ def default_disturbance_params() -> DisturbanceParams:
         payload_shift_test_psi0_deg=2.0,
         detection_window_s=2.0,
     )
+
+
+@dataclass(frozen=True)
+class CorridorParams:
+    """2D corridor geometry (CLAUDE.md section 4/9). Two infinite parallel
+    walls at y=0 and y=width -- no corners or dead ends, see
+    docs/superpowers/plans/2026-09-21-world-wallfollowing-step5.md
+    "Design decision: the corridor is two infinite parallel walls"."""
+
+    width: float  # m, distance between the two walls
+
+
+def default_corridor_params() -> CorridorParams:
+    return CorridorParams(width=1.0)
+
+
+@dataclass(frozen=True)
+class SpeedServoParams:
+    """5-state integral-augmented LQR weights for forward-speed tracking
+    (CLAUDE.md section 9: "plus integral of (theta - theta_ref) for speed
+    servo"). Completely separate from LQRBalanceParams (step 2) -- this
+    does not replace the balance-only LQR, it's an additional, optional
+    augmentation. See sim.control.design_lqr_speed_servo.
+    """
+
+    Q_theta: float
+    Q_psi: float
+    Q_theta_dot: float
+    Q_psi_dot: float
+    Q_integral: float  # weight on z = integral(theta - theta_ref)
+    R: float
+
+
+def default_speed_servo_params() -> SpeedServoParams:
+    return SpeedServoParams(Q_theta=1.0, Q_psi=1e3, Q_theta_dot=1.0, Q_psi_dot=1.0, Q_integral=10.0, R=1e2)
+
+
+@dataclass(frozen=True)
+class YawControlParams:
+    """Yaw-rate tracking gain (CLAUDE.md section 9: "PD on phi_dot").
+    Proportional-only, not PD -- see docs/superpowers/plans/2026-09-21-
+    world-wallfollowing-step5.md "Design decision: yaw control is
+    proportional-only". Any nonzero derivative gain destabilizes this
+    loop given the plant's fast yaw dynamics relative to the 200Hz control
+    rate -- do not add a Kd field without re-reading that section first.
+    """
+
+    Kp: float
+
+
+def default_yaw_control_params() -> YawControlParams:
+    return YawControlParams(Kp=3.0)
+
+
+@dataclass(frozen=True)
+class WallFollowParams:
+    """Wall-following outer loop and front-threshold slowdown (CLAUDE.md
+    section 9). Kp/Kd act on (target_distance - side_ultrasonic_reading)
+    to produce a phi_dot reference for YawControlParams' inner loop.
+    """
+
+    target_distance: float     # m, desired distance from the followed wall
+    Kp: float                  # distance-error -> phi_dot_ref proportional gain
+    Kd: float                  # distance-error -> phi_dot_ref derivative gain
+    front_slow_threshold: float  # m, front ultrasonic reading below this triggers slowdown
+    front_slow_factor: float     # multiplier applied to the forward speed reference when triggered
+
+
+def default_wall_follow_params() -> WallFollowParams:
+    return WallFollowParams(target_distance=0.5, Kp=2.0, Kd=0.5, front_slow_threshold=0.5, front_slow_factor=0.3)

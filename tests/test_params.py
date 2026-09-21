@@ -168,3 +168,80 @@ def test_gate_params_ordering_invariants():
     assert gp.tau1 < gp.tau2
     assert gp.tau1_exit < gp.tau1
     assert gp.tau2_exit < gp.tau2
+
+
+from sim.params import (
+    CorridorParams,
+    SpeedServoParams,
+    WallFollowParams,
+    YawControlParams,
+    default_corridor_params,
+    default_speed_servo_params,
+    default_wall_follow_params,
+    default_yaw_control_params,
+)
+
+
+def test_default_corridor_params():
+    cp = default_corridor_params()
+    assert cp.width == 1.0
+
+
+def test_corridor_params_is_frozen():
+    cp = default_corridor_params()
+    try:
+        cp.width = 2.0
+        assert False, "CorridorParams should be frozen"
+    except AttributeError:
+        pass
+
+
+def test_default_speed_servo_params():
+    sp = default_speed_servo_params()
+    assert sp.Q_theta == 1.0
+    assert sp.Q_psi == 1e3
+    assert sp.Q_theta_dot == 1.0
+    assert sp.Q_psi_dot == 1.0
+    assert sp.Q_integral == 10.0
+    assert sp.R == 1e2
+
+
+def test_speed_servo_params_is_frozen():
+    sp = default_speed_servo_params()
+    try:
+        sp.R = 1.0
+        assert False, "SpeedServoParams should be frozen"
+    except AttributeError:
+        pass
+
+
+def test_default_yaw_control_params():
+    yp = default_yaw_control_params()
+    assert yp.Kp == 3.0
+
+
+def test_yaw_control_params_is_frozen():
+    yp = default_yaw_control_params()
+    try:
+        yp.Kp = 1.0
+        assert False, "YawControlParams should be frozen"
+    except AttributeError:
+        pass
+
+
+def test_default_wall_follow_params():
+    wp = default_wall_follow_params()
+    assert wp.target_distance == 0.5
+    assert wp.Kp == 2.0
+    assert wp.Kd == 0.5
+    assert wp.front_slow_threshold == 0.5
+    assert wp.front_slow_factor == 0.3
+
+
+def test_wall_follow_params_is_frozen():
+    wp = default_wall_follow_params()
+    try:
+        wp.Kp = 1.0
+        assert False, "WallFollowParams should be frozen"
+    except AttributeError:
+        pass
