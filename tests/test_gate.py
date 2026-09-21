@@ -160,9 +160,9 @@ def _closed_loop_with_gate(seed, T, apply_disturbance=None, x0_psi_deg=0.0):
         xdot_true = xdotf(x_true, (u_prev / 2, u_prev / 2))
         theta_ddot_true = xdot_true[3]
 
-        theta_enc = encoder(x_true[0], x_true[1], x_true[2], p, sensor_p)
-        psi_dot_meas, b_g_true = gyro(x_true[4], b_g_true, dt_control, sensor_p, rng)
-        psi_acc_meas = accelerometer(x_true[1], theta_ddot_true, p, sensor_p_now, rng)
+        theta_enc = encoder(x_true[0], x_true[1], x_true[2], p_now, sensor_p_now)
+        psi_dot_meas, b_g_true = gyro(x_true[4], b_g_true, dt_control, sensor_p_now, rng)
+        psi_acc_meas = accelerometer(x_true[1], theta_ddot_true, p_now, sensor_p_now, rng)
         y = np.array([theta_enc, psi_dot_meas, psi_acc_meas])
 
         kf = predict(kf, Ad, Bd, u_prev, Q)
