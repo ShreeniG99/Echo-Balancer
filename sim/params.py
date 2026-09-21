@@ -187,11 +187,33 @@ def default_gate_params() -> GateParams:
 
 @dataclass(frozen=True)
 class DisturbanceParams:
-    """Onset/duration/magnitude for each CLAUDE.md section 8 disturbance,
-    empirically verified (see docs/superpowers/plans/2026-09-21-gate-
-    disturbances-step4.md) to reliably trigger the gate's CAUTIOUS mode
-    within detection_window_s, without an immediate skip to HALT or (for
-    surface_change) numerical divergence of the plant.
+    """Onset/duration/magnitude for each CLAUDE.md section 8 disturbance.
+    See docs/superpowers/plans/2026-09-21-gate-disturbances-step4.md for
+    the full empirical derivation. Load-bearing caveats that matter if
+    you're tuning these, not just reading them:
+
+    - surface_change_fw=0.025 sits close to a genuine plant instability:
+      f_w >= ~0.03 causes the closed-loop nonlinear simulation to diverge
+      (NaN/inf), not just "fall over." Don't raise this without margin.
+    - payload_shift and battery_droop do NOT trigger gate detection in
+      isolation near equilibrium -- payload_shift needs a concurrent mild
+      tilt (payload_shift_test_psi0_deg) to expose the mass/CoM mismatch
+      at all, and even much larger, more "realistic" shifts (delta_M up
+      to 0.5kg, delta_L up to 0.05m) never trigger detection even with
+      tilt; battery_droop needs a concurrent voltage demand
+      (battery_droop_companion_push_magnitude) since nominal near-
+      equilibrium commands never approach even a badly drooped ceiling.
+      These are genuine sensitivity limits of the current NIS/Q/R tuning,
+      not bugs.
+    - battery_droop_companion_push_magnitude and payload_shift_test_psi0_deg
+      are test-harness setup values (what it takes to make the disturbance
+      observable at all), NOT part of the disturbance's own physical
+      profile per CLAUDE.md section 8. Don't feed them into section 12's
+      cross-controller evaluation as if they were part of the canonical
+      battery-droop/payload-shift scenario -- that would silently give
+      those two disturbances an extra "helper" perturbation the other
+      three don't get, undermining "controllers compared on identical
+      disturbance seeds."
     """
 
     surface_change_onset: float
@@ -200,9 +222,9 @@ class DisturbanceParams:
 
     battery_droop_onset: float
     battery_droop_duration: float
-    battery_droop_v_full: float
+    battery_droop_v_nominal: float
     battery_droop_v_drooped: float
-    battery_droop_companion_push_magnitude: float
+    battery_droop_companion_push_magnitude: float  # test-harness setup, not part of the disturbance profile itself -- see class docstring
 
     push_onset: float
     push_magnitude: float
@@ -217,7 +239,7 @@ class DisturbanceParams:
     payload_shift_onset: float
     payload_shift_delta_M: float
     payload_shift_delta_L: float
-    payload_shift_test_psi0_deg: float
+    payload_shift_test_psi0_deg: float  # test-harness setup, not part of the disturbance profile itself -- see class docstring
 
     detection_window_s: float
 
@@ -229,7 +251,7 @@ def default_disturbance_params() -> DisturbanceParams:
         surface_change_fw=0.025,
         battery_droop_onset=5.0,
         battery_droop_duration=1.0,
-        battery_droop_v_full=7.4,
+        battery_droop_v_nominal=7.4,
         battery_droop_v_drooped=0.1,
         battery_droop_companion_push_magnitude=0.05,
         push_onset=5.0,

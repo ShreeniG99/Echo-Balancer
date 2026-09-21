@@ -132,7 +132,7 @@ def test_default_disturbance_params():
     assert dp.surface_change_fw == 0.025
     assert dp.battery_droop_onset == 5.0
     assert dp.battery_droop_duration == 1.0
-    assert dp.battery_droop_v_full == 7.4
+    assert dp.battery_droop_v_nominal == 7.4
     assert dp.battery_droop_v_drooped == 0.1
     assert dp.battery_droop_companion_push_magnitude == 0.05
     assert dp.push_onset == 5.0
@@ -156,3 +156,15 @@ def test_disturbance_params_is_frozen():
         assert False, "DisturbanceParams should be frozen"
     except AttributeError:
         pass
+
+
+def test_gate_params_ordering_invariants():
+    """CLAUDE.md section 10: tau1 < tau2, with hysteresis exits below their
+    entries. A typo swapping tau1_exit/tau2_exit (or similar) would pass
+    every other test in this file and only surface as a mysteriously
+    broken 60-second closed-loop gate test -- so pin the ordering directly."""
+    gp = default_gate_params()
+
+    assert gp.tau1 < gp.tau2
+    assert gp.tau1_exit < gp.tau1
+    assert gp.tau2_exit < gp.tau2
