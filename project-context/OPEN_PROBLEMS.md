@@ -79,3 +79,18 @@ actually checking.
 - **Whether the two untracked root PDFs contain content the user wants folded
   into `project-context/` or the Graphify graph** — see "Confirmed problems"
   above; this is a "what does the user want" unknown, not a technical one.
+- **Whether `front_threshold_speed_adjust` needs a corridor dead-end to be
+  meaningfully validated end-to-end.** It's implemented and unit-tested
+  correctly in isolation, but the current corridor (two infinite parallel
+  walls, per §9's own "cut wall-following first if behind schedule" spirit)
+  has nothing ahead to trigger it via a genuine head-on obstacle in the closed
+  loop — only heading-drift-toward-a-side-wall exercises it indirectly.
+- **Whether/how `sim/run.py` (step 6) should unify the three overlapping
+  test-only closed-loop harnesses** that have now accumulated
+  (`tests/test_estimator.py::_run_nominal_closed_loop`,
+  `tests/test_gate.py::_closed_loop_with_gate`,
+  `tests/test_wall_following.py::test_follows_wall_without_crashing`) — each
+  independently hand-rolls plant-stepping/control/state-threading plumbing.
+  Not yet a confirmed problem (each is still small and independently correct),
+  but the duplication is growing and `run.py` is the natural point to resolve
+  it, one way or another.

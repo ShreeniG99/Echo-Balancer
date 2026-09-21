@@ -1,12 +1,12 @@
 # Current State — Echo Balancer
 
-Last verified: 2026-09-21, against branch `master` at commit `12be336`
+Last verified: 2026-09-21, against branch `master` at commit `96f914b`
 (`git log --oneline -1`). **Re-verify against `git log` if this looks stale —
 this file is a snapshot, not a live view.**
 
-## What currently works (verified: 58/58 tests passing, `uv run pytest -q`)
+## What currently works (verified: 84/84 tests passing, `uv run pytest -q`)
 
-Build order per `CLAUDE.md` §14 — steps 1-4 complete:
+Build order per `CLAUDE.md` §14 — steps 1-5 complete:
 
 1. **Plant model** (`sim/params.py`, `sim/plant.py`, `sim/integrate.py`)
    - Energy conservation to <0.1% over 5s with `f_m=0` and `Kb=0` (back-EMF zeroed
@@ -45,30 +45,59 @@ Build order per `CLAUDE.md` §14 — steps 1-4 complete:
      disturbance types under the current tuning — see
      [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).
 
-Full test run (this session): `58 passed` (~2 minutes — two ~60s-equivalent
-closed-loop tests: the §11 NIS test and the nominal-60s gate test, plus six
-~20s-equivalent per-disturbance gate tests).
+5. **World + wall-following** (`sim/world.py`, `sim/sensors.py::ultrasonic`,
+   `sim/control.py` additions) — **"Full wall-following" per the user's explicit
+   choice, not a reduced version**
+   - `sim/world.py`: `cast_ray` (ray-vs-two-infinite-parallel-walls geometry,
+     `ray_parallel_eps` tolerance now in `CorridorParams` not hardcoded) and
+     `pose_velocity` (unicycle kinematics, plugs into `rk4_step` like `plant.f`).
+   - `sim/sensors.py::ultrasonic`: HC-SR04 model (20Hz, 0.02-4m, σ≈3mm, 2%
+     dropout) — closes a gap left open since step 3.
+   - `sim/control.py::design_lqr_speed_servo`: a **new, separate** 5-state
+     integral-augmented LQR (does not modify `design_lqr_balance`) — needed
+     because feeding a moving reference into the 4-state balance LQR gives 42%
+     steady-state speed error (no integral action). Verified gain
+     `K=[-0.906,-53.30,-2.312,-5.011,-0.316]`, all closed-loop poles stable.
+   - `sim/control.py::yaw_p_control`: **proportional-only, not PD** — the
+     plant's yaw pole (~-95.6 rad/s) is too fast relative to the 200Hz control
+     rate for any nonzero `Kd` to stay stable (verified: `Kd=0.02` diverges to
+     ~1e36 within 3s). `YawControlParams` deliberately has no `Kd` field.
+   - `sim/control.py::wall_following_control`, `front_threshold_speed_adjust`:
+     side-distance-error → PD → yaw-rate reference; front-distance threshold →
+     speed slowdown, per §9.
+   - `tests/test_wall_following.py`: one closed-loop integration test — full
+     nonlinear plant + RK4, true-state speed-servo feedback, true-φ̇ yaw
+     control, **real noisy/dropout-prone `ultrasonic()`** driving the outer
+     loop, corridor ray casting, pose integration via `pose_velocity`/`rk4_step`
+     at 1ms plant resolution. Robot starts 0.2m off target, converges to
+     within 0.021 of the 0.5m target distance over 15 simulated seconds,
+     never touches either wall. Bypasses the Kalman filter for balance/speed
+     state (uses true state directly, matching step 2's recovery-test
+     precedent) — a documented, temporary simplification pending `run.py`.
 
-## What does not exist yet (build order steps 5-8, not started)
+Full test run (this session): `84 passed` (~40-55s depending on machine — the
+new wall-following closed-loop test adds ~2.5s for its 15-simulated-second run
+at 1kHz/200Hz/20Hz).
 
-- `sim/world.py` — 2D corridor + ray casting (blocks the ultrasonic sensor model
-  and wall-following). **This is the next step.**
-- `sim/run.py` — the general-purpose closed-loop episode runner. Note: both the
-  §11 NIS test's closed loop (`tests/test_estimator.py::_run_nominal_closed_loop`)
-  and the gate tests' closed loop (`tests/test_gate.py::_closed_loop_with_gate`)
-  are test-only harnesses with some duplication between them, explicitly *not*
+## What does not exist yet (build order steps 6-8, not started)
+
+- `sim/run.py` — the general-purpose closed-loop episode runner. Note: the
+  §11 NIS test's closed loop (`tests/test_estimator.py::_run_nominal_closed_loop`),
+  the gate tests' closed loop (`tests/test_gate.py::_closed_loop_with_gate`),
+  and now the wall-following closed loop (`tests/test_wall_following.py`) are
+  THREE test-only harnesses with overlapping plumbing, explicitly *not*
   a preview of `run.py`'s eventual design — see
   [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md) for the "should these be unified" question.
+  **This is the next step.**
 - `experiments/run_batch.py`, `analysis/metrics.py`, `analysis/plots.py`,
-  `analysis/animate.py` — batch evaluation and reporting.
+  `analysis/animate.py` — batch evaluation and reporting (Milestone 2).
 - `quantum/qubo.py` — QUBO formulation + grid vs. `GroverOptimizer` comparison.
   `qiskit`/`qiskit-optimization` are not yet in `pyproject.toml` (deliberately —
   see [DECISIONS.md](DECISIONS.md)).
-- Speed-servo integral term, yaw PD, and wall-following in `sim/control.py` (spec'd
-  in §9, scoped out of steps 1-4 explicitly). **Note:** the missing speed-servo
-  integral term is the root cause of the gate's chi2(3N)-quantile deviation
-  (see [FAILED_APPROACHES.md](FAILED_APPROACHES.md)) — worth remembering if this
-  gets revisited.
+- Corridor corners/dead-ends in `sim/world.py` — the current corridor is two
+  infinite parallel walls, so `front_threshold_speed_adjust` is implemented and
+  unit-tested but has nothing to meaningfully trigger it head-on in the closed
+  loop yet.
 - Hardware parameter set (`CLAUDE.md` §6.2, `REAL_SPEC`/`MEASURED`/`ESTIMATED`/
   `PLACEHOLDER` tags) — no hardware has arrived yet; only the NXTway-GS §6.1 values
   are in use.
@@ -76,8 +105,13 @@ closed-loop tests: the §11 NIS test and the nominal-60s gate test, plus six
 ## Current implementation details worth knowing
 
 - **`sim/params.py`** currently defines: `PlantParams`, `LQRBalanceParams`,
-  `SensorParams`, `EstimatorParams`, `GateParams`, `DisturbanceParams` — each with
-  a `default_*()` factory.
+  `SensorParams`, `EstimatorParams`, `GateParams`, `DisturbanceParams`,
+  `CorridorParams`, `SpeedServoParams`, `YawControlParams`, `WallFollowParams`
+  — each with a `default_*()` factory.
+- **`sim/control.py`** now has five public functions: `design_lqr_balance`
+  (step 2), `design_lqr_speed_servo` (step 5, separate from balance),
+  `yaw_p_control`, `wall_following_control`, `front_threshold_speed_adjust`
+  (step 5).
 - **`EstimatorParams` defaults** (`Q_theta=Q_psi=1e-8`, `Q_theta_dot=Q_psi_dot=1e-6`,
   `P0_*=1e-4` except `P0_bg=1e-6`) are empirically tuned, not derived from a spec
   target — see [DECISIONS.md](DECISIONS.md) for the tuning story and
@@ -88,10 +122,11 @@ closed-loop tests: the §11 NIS test and the nominal-60s gate test, plus six
   test-harness-only setup values (`battery_droop_companion_push_magnitude`,
   `payload_shift_test_psi0_deg`) needed to make those two disturbances observable
   at all — see `sim/params.py`'s own docstring before using these in `experiments/`.
-- Test suite: 10 test modules under `tests/`, one per `sim/` module (`test_params`,
+- Test suite: 12 test modules under `tests/`, one per `sim/` module (`test_params`,
   `test_plant`, `test_integrate`, `test_linearize`, `test_control`, `test_sensors`,
-  `test_estimator`, `test_gate`, plus `test_disturbances`). No `test_world.py`,
-  `test_run.py`, etc. yet.
+  `test_estimator`, `test_gate`, `test_disturbances`, `test_world`) plus
+  `test_wall_following.py` (integration-only, no matching `sim/` module). No
+  `test_run.py` yet.
 - `tests/test_gate.py` is now 12 tests / ~300+ lines spanning fast unit tests
   (toy `N=3` state-machine logic) and slow closed-loop integration tests (60s +
   six 20s simulations, ~90s total) — flagged as a candidate for splitting into
@@ -109,21 +144,24 @@ closed-loop tests: the §11 NIS test and the nominal-60s gate test, plus six
 
 ## Current objective
 
-Per `CLAUDE.md` §14, the next build-order step is **step 5**: `sim/world.py` →
-wall-following. If behind schedule, the spec says cut wall-following first — the
-2D corridor/ray-casting core of `world.py` (needed for the ultrasonic model) is
-lower-priority to drop than the gate was.
+Per `CLAUDE.md` §14, the next build-order step is **step 6**: `sim/run.py` →
+`experiments/run_batch.py` → `analysis/metrics.py` (Milestone 2: "metrics table
+for all three controllers" — naive, tilt-threshold gate, NIS gate).
 
 ## Immediate next steps
 
-1. Implement `sim/world.py`: 2D corridor geometry + ray casting (`CLAUDE.md` §7's
-   ultrasonic model — HC-SR04, 20Hz, range 0.02-4m, σ≈3mm, 2% dropout — has been
-   waiting on this since step 3; `SensorParams` already has the ultrasonic fields).
-2. Implement wall-following in `sim/control.py`: side ultrasonic distance error →
-   PD → yaw-rate reference; front ultrasonic below threshold → slow down (§9).
-3. This is also the natural point to reconsider the yaw PD and speed-servo
-   integral term from §9 that steps 1-4 deliberately deferred — check whether
-   wall-following needs them before deferring further.
+1. Design `sim/run.py`: one closed-loop episode → DataFrame, per `CLAUDE.md` §4.
+   Consider unifying the three overlapping test-only closed-loop harnesses that
+   now exist (`test_estimator.py`, `test_gate.py`, `test_wall_following.py`)
+   rather than writing a fourth independent implementation — see
+   [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).
+2. Implement the three controllers to compare (§12): naive (always NORMAL),
+   tilt-threshold gate (|ψ| thresholds only), NIS gate (already built, steps
+   3-4). Decide whether/how the step-5 wall-following stack (speed servo, yaw,
+   wall-following) integrates into `run.py`'s episodes, or whether `run.py`'s
+   first cut is balance-only-in-a-corridor and wall-following comes later.
+3. `experiments/run_batch.py` + `analysis/metrics.py`: fall rate, false-fallback,
+   missed-fallback, detection delay, progress — per §12's metrics list.
 
 ## Uncommitted / unusual repo state as of this session
 
@@ -132,5 +170,6 @@ lower-priority to drop than the gate was.
   the user (flagged in [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md), not assumed). This has
   been true since 2026-09-20/21 and hasn't blocked anything; revisit only if the
   user raises it.
-- Everything else is now committed (as of `12be336`): `.claude/`, `.graphifyignore`,
-  `graphify-out/`, `project-context/`, and this step's plan doc.
+- Everything else is now committed (as of `96f914b`): `.claude/`, `.graphifyignore`,
+  `graphify-out/`, `project-context/`, and all five steps' plan docs (step 5's
+  plan doc was briefly untracked mid-step, fixed in the closing commit).

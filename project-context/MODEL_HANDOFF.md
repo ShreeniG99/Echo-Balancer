@@ -2,7 +2,7 @@
 
 **Read this first.** It's the short version of everything else in
 `project-context/`. Follow the links only when you need more depth on a specific
-point. Last updated: 2026-09-21, commit `12be336` on `master`.
+point. Last updated: 2026-09-21, commit `96f914b` on `master`.
 
 ## What this project is (one paragraph)
 
@@ -16,24 +16,32 @@ at repo root. Longer version: [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md).
 
 ## Current state in one paragraph
 
-Build-order steps 1-4 of 8 are done and tested (58/58 passing): nonlinear plant,
+Build-order steps 1-5 of 8 are done and tested (84/84 passing): nonlinear plant,
 RK4 integration, analytic linearization, balance LQR, sensor noise models, a
-5-state Kalman filter with NIS, and — as of this step — the actual gate
-(Normal/Cautious/Halt state machine on the windowed NIS statistic) plus all 5
-CLAUDE.md §8 disturbance profiles. **Build-order Milestone 1 ("gate switches
-under one disturbance") is achieved, six times over** (one test per disturbance
-category, two variants for "sensor fault"). **Step 5 — `sim/world.py` (2D
-corridor + ray casting) and wall-following — has not been started.** That is the
-next work. Full detail: [CURRENT_STATE.md](CURRENT_STATE.md).
+5-state Kalman filter with NIS, the Normal/Cautious/Halt gate with all 5
+CLAUDE.md §8 disturbance profiles, and — as of this step — `sim/world.py` (2D
+corridor + ray casting + pose kinematics), the ultrasonic sensor model, and the
+full CLAUDE.md §9 wall-following stack (speed-servo LQR, yaw control,
+wall-following outer loop, front-threshold slowdown), demonstrated together in
+one closed-loop test with real sensor noise/dropout. **Build-order Milestone 1
+is achieved six times over** (step 4). **"Full wall-following" (not a reduced
+version) was built per the user's explicit choice** when step 5 turned out to
+need two new control loops from scratch — see "Decisions" below. **Step 6 —
+`sim/world.py`'s corridor extended for `run.py`/`run_batch.py`/`metrics.py`
+(Milestone 2) — has not been started.** That is the next work. Full detail:
+[CURRENT_STATE.md](CURRENT_STATE.md).
 
 ## Architecture you need to know
 
 `sim/params.py` holds every numeric constant (no magic numbers elsewhere).
 `sim/plant.py` → `sim/integrate.py` → `sim/linearize.py` → `sim/control.py` →
-`sim/sensors.py` → `sim/estimator.py` → `sim/gate.py` + `sim/disturbances.py` is
-the built chain; `sim/world.py` is the next link. Every module has a matching
-file in `tests/`; a module isn't "done" without passing tests. Full layout:
-[PROJECT_CONTEXT.md](PROJECT_CONTEXT.md).
+`sim/sensors.py` → `sim/estimator.py` → `sim/gate.py` + `sim/disturbances.py` →
+`sim/world.py` is the built chain. `sim/control.py` now holds five functions:
+`design_lqr_balance` (step 2, unmodified), `design_lqr_speed_servo` (step 5, a
+genuinely separate 5-state integral-augmented LQR — does not replace balance),
+`yaw_p_control`, `wall_following_control`, `front_threshold_speed_adjust` (step
+5). Every module has a matching file in `tests/`; a module isn't "done" without
+passing tests. Full layout: [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md).
 
 ## Decisions you must not silently re-litigate
 
@@ -59,6 +67,30 @@ file in `tests/`; a module isn't "done" without passing tests. Full layout:
   (a small push; a mild tilt) to be observable at all — genuine sensitivity
   limits of the current tuning, not bugs, and NOT part of either disturbance's
   canonical §8 profile (don't feed the companion fields into §12 evaluation).
+- **A real "speed servo" LQR is a genuinely separate 5-state function
+  (`design_lqr_speed_servo`), not a moving-reference hack on the existing
+  4-state `design_lqr_balance`.** Feeding a moving reference into the 4-state
+  LQR gives 42% steady-state speed error (no integral action). Don't try that
+  shortcut again — build the integral-augmented state instead.
+- **Yaw control is proportional-only, not PD, permanently** — `YawControlParams`
+  deliberately has no `Kd` field. The plant's yaw pole (~-95.6 rad/s) is too fast
+  relative to the 200Hz control rate: any nonzero `Kd` destabilizes the loop
+  (`Kd=0.02` diverges to ~1e36 within 3s). This is a genuine discrete-sampling
+  problem, not an undertuned gain — don't re-add `Kd` without a faster control
+  rate or a restructured (state-feedback) yaw loop.
+- **The corridor is two infinite parallel walls, no corners/dead-ends** — a
+  deliberate MVP simplification (`sim/world.py::cast_ray`). Consequence:
+  `front_threshold_speed_adjust` is implemented and unit-tested but can't be
+  meaningfully exercised end-to-end (nothing ahead to trigger it head-on) until
+  a corridor with an actual dead-end exists.
+- `sim/world.py::pose_velocity` is called via `rk4_step` **once per 1ms plant
+  substep**, not once per 5ms control tick — because its `phi` input is a
+  genuine plant state (continuously evolving), not a true ZOH-held control
+  input like `v_l`/`v_r`; freezing it for only 1ms bounds the approximation
+  error to the plant's own integration resolution. (For a state-independent
+  frozen-input velocity field this is algebraically identical to Euler — the
+  point of using `rk4_step` here is convention-consistency with the rest of the
+  codebase, not extra numerical accuracy.)
 - Full list with reasons: [DECISIONS.md](DECISIONS.md).
 
 ## Failed approaches — do not repeat
@@ -86,7 +118,11 @@ file in `tests/`; a module isn't "done" without passing tests. Full layout:
 - Two untracked PDFs sit under `research/` with unclear purpose — don't assume,
   ask the user.
 - Hardware params (§6.2) are entirely placeholder; `qiskit`/`qiskit-optimization`
-  not yet installed/verified. Full list: [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).
+  not yet installed/verified.
+- **`front_threshold_speed_adjust` has no end-to-end exercise** — the corridor
+  has no dead-end/obstacle ahead to trigger it via the real closed loop; only
+  unit-tested in isolation. Not a bug, just untested-in-context.
+- Full list: [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).
 
 ## Exact config/parameters in force right now
 
@@ -94,7 +130,15 @@ file in `tests/`; a module isn't "done" without passing tests. Full layout:
 PlantParams:       CLAUDE.md §6.1 NXTway-GS values (g=9.81, m=0.03, R=0.04, M=0.6, ...)
 LQRBalanceParams:  Q=diag(1, 1e3, 1, 1), R=1e2
 SensorParams:      sigma_gyro=0.005, gyro_bias_walk=1e-4, sigma_accel=0.02,
-                   encoder_cpr=360, ultrasonic_* set but unused (no world.py yet)
+                   encoder_cpr=360, ultrasonic: range 0.02-4m, sigma=3mm,
+                   dropout=2% -- now consumed by sim.sensors.ultrasonic (step 5)
+CorridorParams:    width=1.0m, ray_parallel_eps=1e-9 (cast_ray's near-parallel
+                   tolerance -- moved here from a hardcoded value per CLAUDE.md §3)
+SpeedServoParams:  Q=diag(1, 1e3, 1, 1, 10) [theta,psi,theta_dot,psi_dot,integral],
+                   R=1e2 -- gain K=[-0.906,-53.30,-2.312,-5.011,-0.316] (verified)
+YawControlParams:  Kp=3.0 (proportional-only, no Kd -- see Decisions)
+WallFollowParams:  target_distance=0.5m, Kp=2.0, Kd=0.5, front_slow_threshold=0.5m,
+                   front_slow_factor=0.3
 EstimatorParams:   Q_theta=Q_psi=1e-8, Q_theta_dot=Q_psi_dot=1e-6,
                    P0_theta=P0_psi=P0_theta_dot=P0_psi_dot=1e-4, P0_bg=1e-6
 GateParams:        N=200 (1s window), tau1=1300, tau2=1800, tau1_exit=1040,
@@ -119,43 +163,58 @@ tuned values) · `tests/` (definition of done) · `graphify-out/graph.json`
 
 ## What the previous model (this session) was doing
 
-Implemented build-order step 4 (`sim/gate.py`, `sim/disturbances.py`) via
+Implemented build-order step 5 (`sim/world.py`, ultrasonic sensor, §9
+wall-following stack in `sim/control.py`) via
 `superpowers:subagent-driven-development`, following the same plan-first,
-two-stage-review pattern as steps 1-3. This step required by far the most
-empirical exploration of the four so far: discovered that literal χ²(3N)
-quantiles are provably unachievable for the gate thresholds (not just
-empirically inconvenient, like the earlier NIS-test finding), discovered a
-genuine plant instability boundary near `f_w≈0.03`, and discovered that two of
-five disturbances (payload shift, battery droop) don't trigger detection in
-isolation near equilibrium. One implementer subagent run for the final task
-took an anomalously long time (~3 hours) and returned with work incomplete; the
-controller verified the partial state directly, found a real bug in the
-battery-droop test's timing (companion push fired before the voltage ramp had
-actually drooped — an artifact of an exploratory script using a step function
-where the real implementation uses a ramp), fixed it directly, and confirmed via
-a full test run before committing. All 58 tests pass. Also, per the user's
-request, committed everything that had accumulated uncommitted from the prior
-session's Graphify/`project-context/` setup (see below), and updated
-`project-context/` itself to reflect this step's findings.
+two-stage-review pattern as steps 1-4. This step needed substantially more
+design work than any prior step: §9's wall-following description assumes
+forward-speed and yaw-rate control already exist, but neither did (steps 1-4
+were balance-only). Mid-step, after discovering this, the controller used
+`AskUserQuestion` to check whether to follow CLAUDE.md's own "cut
+wall-following first if behind schedule" guidance — **the user explicitly chose
+"Full wall-following"**, i.e. build the complete stack as originally scoped,
+not a reduced version. That decision was honored throughout: a genuinely
+separate 5-state integral-augmented speed-servo LQR was built (42% steady-state
+error without it), and yaw control was built proportional-only after
+discovering PD is genuinely unstable at this plant's yaw pole speed vs. the
+200Hz control rate (not a tuning problem — verified numerically).
 
-**Graphify status (inherited from the prior session, unchanged this session):**
-code-only graph (328+ nodes after this step's updates — re-run `graphify update .`
-if this looks stale), no deep semantic doc-prose extraction (needs an LLM
-backend, none configured), git hooks not installed (user hasn't opted in).
+Six tasks, each independently spec-reviewed and code-quality-reviewed via fresh
+subagents; three of six needed one fix-loop iteration (a magic-number rule
+violation, a mathematically-incorrect docstring claim about ramping-reference
+dynamics caught by an unusually rigorous reviewer, and two rounds of stale
+"not yet implemented" docstrings that kept slipping through single-function
+reviews because they were module-level). A final holistic review after all six
+tasks caught one more stale module docstring and an untracked plan doc, both
+fixed in a closing commit. One notable orchestrator-level design decision made
+mid-review (not by an implementer): after a code reviewer flagged that
+`pose_velocity` (Task 2) was designed to be used by Task 6 but Task 6's original
+pseudocode used a hand-rolled formula instead — leaving `pose_velocity`
+untested by its only consumer — the controller edited the plan doc directly to
+change Task 6 to integrate position via `pose_velocity`/`rk4_step` at 1ms plant
+resolution instead of 5ms control resolution. This was re-verified when Task 6
+was actually implemented: results matched the old formula's pre-verified
+numbers to within ~0.0002, confirming the change was safe. All 84 tests pass.
+
+**Graphify status (inherited from the prior session, not touched this
+session — the codebase changed a lot; run `graphify update .` before trusting
+the graph):** code-only graph (328+ nodes as of the last known-good build), no
+deep semantic doc-prose extraction (needs an LLM backend, none configured), git
+hooks not installed (user hasn't opted in).
 
 ## What the next model should do
 
-- If continuing simulation work: start build-order **step 5** (`sim/world.py`,
-  then wall-following in `sim/control.py`) per
+- If continuing simulation work: start build-order **step 6**
+  (`sim/run.py` → `experiments/run_batch.py` → `analysis/metrics.py`,
+  CLAUDE.md §14's "Milestone 2: metrics table for all three controllers") per
   [CURRENT_STATE.md](CURRENT_STATE.md)'s "Immediate next steps." Use
-  `superpowers:writing-plans` the way the four existing `docs/superpowers/plans/`
+  `superpowers:writing-plans` the way the five existing `docs/superpowers/plans/`
   documents were written, for consistency — and budget real time for empirical
-  verification before writing the plan, the way steps 3-4 did, rather than
-  guessing at ray-casting/wall-following parameters.
-- Consider whether `sim/world.py`/wall-following actually needs the §9
-  speed-servo integral term and yaw PD that steps 1-4 deferred — if so, that's
-  probably worth building first, and it would also fix the gate's chi2(3N)
-  slow-pole issue as a side effect.
+  verification before writing the plan, the way steps 3-5 did.
+- `sim/run.py` will likely want to unify the closed-loop-harness duplication
+  that's accumulated across `tests/test_estimator.py`,`tests/test_gate.py`, and
+  now `tests/test_wall_following.py` (three independent test-only closed loops
+  with overlapping plumbing) — see [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).
 - Run `graphify query "<question>"` before grepping the whole repo for a
   code-structure question (a `PreToolUse` hook enforces this), and update this
   file plus the relevant sibling file (`CURRENT_STATE.md` for state changes,

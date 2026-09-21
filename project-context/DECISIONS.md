@@ -198,6 +198,97 @@ source actually states them — no speculation.
   itself independently verified too small to trigger detection alone) and
   `payload_shift_test_psi0_deg` (2°) are test-harness setup values, not part of
   either disturbance's own physical profile per §8.
+
+---
+
+### Decision: `design_lqr_speed_servo` is a separate 5-state LQR, not a modification of `design_lqr_balance`
+- **What:** A new function, state `[θ-θ_ref, ψ, θ̇-θ̇_ref, ψ̇, ∫(θ-θ_ref)dt]`,
+  built by augmenting `linearize_planar`'s existing 4x4 `A`/`B` with one
+  integrator row. `design_lqr_balance`/`LQRBalanceParams` (step 2) are
+  completely unmodified — every test depending on them (recovery test, NIS
+  test, gate tests) keeps exercising the exact same code path as before.
+- **Reason:** First attempt fed a moving reference straight into the existing
+  4-state balance LQR (`u = -K·[θ-θ_ref(t), ψ, θ̇-θ̇_ref, ψ̇]`). Result: 42%
+  steady-state speed error (`θ̇_ref=1.0` settles at `θ̇≈1.42`) — pure state
+  feedback has no integral action to drive a ramp-reference error to zero.
+  Verified gain: `K=[-0.906,-53.30,-2.312,-5.011,-0.316]`,
+  `Q=diag(1,1e3,1,1,10)`, `R=1e2`, all closed-loop poles stable
+  (`-241.8, -0.394±0.389j, -7.66, -6.34`).
+- **Caveat also worth knowing:** under a *ramping* reference (not constant),
+  the closed-loop dynamics are NOT identical to the nominal `θ_ref=0` design —
+  `A_planar[2,2]`/`A_planar[3,2]` introduce constant bias terms. Tracking error
+  still converges to exactly zero at steady state (Type-1 servo / integral
+  action rejecting the ramp-induced disturbance), but the integrator's own
+  steady-state value is nonzero (`z_eq≠0`) under a ramp — don't assume the
+  ramping and nominal cases behave identically beyond that tracking-error
+  convergence.
+- **Date:** 2026-09-21 (step 5).
+- **Still current:** Yes.
+
+---
+
+### Decision: yaw control is proportional-only, permanently — do not add `Kd`
+- **What:** `yaw_p_control` implements `u = Kp·(φ̇_ref - φ̇)` only.
+  `YawControlParams` has no `Kd` field by design.
+- **Reason:** The plant's actual yaw dynamics (`sim/linearize.py`, row/col 5)
+  are `φ̈ ≈ -95.57·φ̇ + 106.16·(v_r-v_l)` — an open-loop pole at ≈-95.6 rad/s
+  (~10ms time constant), uncomfortably fast relative to the 200Hz (5ms) control
+  rate. Tested discrete PD: any nonzero `Kd` destabilizes the loop almost
+  immediately (`Kd=0.01` borderline, `Kd=0.02` diverges to ~1e36 within 3s,
+  `Kd=0.05` diverges outright). This is a genuine discrete-time sampling
+  problem (large-gain derivative amplifying an already-fast plant pole at a
+  fixed sample rate), not a tuning imprecision. `Kp=3.0` gives comfortable
+  margin below the ~8-10 instability onset, at the cost of ~62%
+  steady-state φ̇-tracking error (expected P-only behavior, not a bug) —
+  compensated for by the outer wall-following loop reacting to actual measured
+  distance error regardless of why φ̇ undershot.
+- **If this needs revisiting:** requires either a faster control rate or a
+  restructured yaw loop (e.g. state feedback using more than just φ̇) — not a
+  `Kd` tweak on this design.
+- **Date:** 2026-09-21 (step 5).
+- **Still current:** Yes.
+
+---
+
+### Decision: the corridor is two infinite parallel walls, no corners or dead ends
+- **What:** `sim/world.py::cast_ray` models walls at `y=0` and `y=width` only,
+  unbounded in `x`. `ray_parallel_eps` (near-parallel-ray tolerance) lives in
+  `CorridorParams`, not hardcoded (moved there after code review flagged the
+  original hardcoded `1e-9` as a CLAUDE.md §3 violation).
+- **Reason:** Simplest geometry sufficient to test wall-following; keeps
+  `cast_ray` a one-line case split (no segment-endpoint intersection tests).
+  Consistent with `CLAUDE.md`'s own "cut wall-following first if behind
+  schedule" guidance suggesting a minimal implementation is appropriate — even
+  though the user chose to build the *full* wall-following stack rather than
+  cut it, the corridor geometry itself was still kept minimal.
+- **Consequence:** `front_threshold_speed_adjust` can only be exercised
+  end-to-end via heading drift toward a side wall, not a genuine head-on
+  obstacle (nothing ahead to hit). It's implemented and unit-tested as a
+  correct, general function regardless.
+- **Date:** 2026-09-21 (step 5).
+- **Still current:** Yes — a dead-end corridor is a natural extension, not
+  required by CLAUDE.md §9's literal wording.
+
+---
+
+### Decision: `sim/world.py::pose_velocity` integrates at 1ms plant-substep resolution, not 5ms control-tick resolution
+- **What:** In `tests/test_wall_following.py`'s closed loop, `pose_velocity` is
+  called via `rk4_step` once per 1ms plant substep (using the just-updated
+  `x[3]`/`x[2]` after each plant RK4 step), not once per 5ms control tick.
+- **Reason:** `pose_velocity` is designed to plug into `rk4_step` exactly like
+  `sim/plant.py::f` does, holding its input `(θ̇, φ)` constant across one step —
+  the same ZOH pattern `plant.f` uses for `(v_l, v_r)`. But unlike `v_l`/`v_r`
+  (a true DAC-held control input), `φ` is a genuine plant *state*, continuously
+  evolving — freezing it is only a good approximation if the freeze window is
+  short relative to how fast φ actually changes. A code reviewer flagged that
+  the original plan (a hand-rolled position-update formula at 5ms resolution)
+  left `pose_velocity` untested by its only specified consumer; this was fixed
+  by integrating at the plant's own 1ms resolution instead — a 5x tighter
+  freeze window, and it makes `pose_velocity` the function actually exercised.
+  Re-verified numerically: results matched the old hand-rolled formula's
+  pre-verified numbers (seed=0) to within ~0.0002 — negligible difference.
+- **Date:** 2026-09-21 (step 5).
+- **Still current:** Yes.
 - **Reason:** Both disturbances, tested in isolation near equilibrium, never bind
   anything the gate can detect — battery droop's voltage ceiling is never
   approached by the tiny nominal command magnitudes, and payload shift's mass/CoM

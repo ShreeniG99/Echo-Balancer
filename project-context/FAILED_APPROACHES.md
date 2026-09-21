@@ -120,3 +120,39 @@ to work, for the stated reasons.
   running the full test suite before committing, even when a plan document already
   states specific "verified" latency figures.
 - **Source:** commit `2a5f0f0` message; `docs/superpowers/plans/2026-09-21-gate-disturbances-step4.md`, Task 5's `test_enters_cautious_after_battery_droop`.
+
+---
+
+### Feeding a moving reference into the existing 4-state balance LQR for speed tracking
+- **What was tried:** Instead of designing a new integral-augmented LQR, reuse
+  the approved `design_lqr_balance` and just feed it a moving reference:
+  `u = -K·[θ-θ_ref(t), ψ, θ̇-θ̇_ref, ψ̇]` with `θ_ref(t)` ramping at the desired
+  speed.
+- **Why it failed:** 42% steady-state speed error (`θ̇_ref=1.0 rad/s` settles at
+  `θ̇≈1.42`; `θ̇_ref=5.0` settles at `≈7.10`) — a textbook type-0-system
+  steady-state error, since pure state feedback has no integral action to
+  drive a ramp-reference error to zero.
+- **What should not be repeated:** Don't try to retrofit reference-tracking
+  onto a non-integral LQR by feeding it a moving setpoint — build a genuinely
+  integral-augmented design instead (see [DECISIONS.md](DECISIONS.md),
+  `design_lqr_speed_servo`).
+- **Source:** `docs/superpowers/plans/2026-09-21-world-wallfollowing-step5.md`,
+  "Design decision: a real 'speed servo' LQR is required."
+
+---
+
+### Discrete PD (nonzero `Kd`) for yaw-rate control
+- **What was tried:** `u = Kp·(φ̇_ref-φ̇) + Kd·d(error)/dt` at `dt=5ms` (200Hz),
+  for several `Kd` values from 0.001 up to 0.05.
+- **Why it failed:** Any nonzero `Kd` destabilizes the loop almost immediately
+  — `Kd=0.01` borderline, `Kd=0.02` diverges to `~1e36` within 3 seconds,
+  `Kd=0.05` diverges outright. Root cause: the plant's yaw pole (~-95.6 rad/s,
+  ~10ms time constant) is too fast relative to the 5ms sample period for
+  derivative action to stay stable at any usable gain — a genuine discrete-time
+  sampling problem, not an undertuned gain.
+- **What should not be repeated:** Don't re-add a `Kd` field to
+  `YawControlParams` expecting careful tuning to find a stable value — none
+  exists at this control rate. A faster control rate or a restructured
+  (state-feedback) yaw loop would be required first.
+- **Source:** `docs/superpowers/plans/2026-09-21-world-wallfollowing-step5.md`,
+  "Design decision: yaw control is proportional-only."
