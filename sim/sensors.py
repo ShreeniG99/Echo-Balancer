@@ -1,10 +1,10 @@
 """Sensor models (CLAUDE.md section 7).
 
-Gyro, accelerometer, and encoder -- the three sensors the balance Kalman
-filter (sim/estimator.py) consumes. The ultrasonic model needs 2D corridor
-ray-casting and belongs in sim/world.py (build order step 5); it isn't part
-of the KF's measurement vector (CLAUDE.md section 9), so its absence here
-doesn't block the estimator.
+Gyro, accelerometer, and encoder feed the balance Kalman filter
+(sim/estimator.py); ultrasonic does not (it isn't part of the KF's
+measurement vector per CLAUDE.md section 9) -- it drives wall-following
+instead (sim/control.py), using ray-cast distances from sim/world.py as
+its true_distance input.
 """
 
 import numpy as np

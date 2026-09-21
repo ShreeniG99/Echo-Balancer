@@ -1,8 +1,8 @@
 """2D corridor geometry, ray casting, and robot pose kinematics
-(CLAUDE.md section 4; section 7's ultrasonic model needs the ray casting
-here). The corridor is two infinite parallel walls -- no corners or dead
-ends; see the plan doc's "Design decision: the corridor is two infinite
-parallel walls".
+(CLAUDE.md section 4; sim.sensors.ultrasonic consumes cast_ray's output as
+its true_distance argument, per section 7). The corridor is two infinite
+parallel walls -- no corners or dead ends; see the plan doc's "Design
+decision: the corridor is two infinite parallel walls".
 """
 
 import numpy as np

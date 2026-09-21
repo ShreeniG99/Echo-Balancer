@@ -84,10 +84,9 @@ class SensorParams:
     """Sensor noise model (CLAUDE.md section 7). All values are starting
     points, not measured/calibrated hardware specs.
 
-    ultrasonic_* fields are not yet consumed by any sensor function -- the
-    ultrasonic model needs 2D corridor ray-casting (sim/world.py, build
-    order step 5) -- but CLAUDE.md section 7 says all sigma values belong
-    here regardless, so they're recorded now.
+    ultrasonic_* fields are consumed by sim.sensors.ultrasonic, which
+    combines them with 2D corridor ray-casting (sim/world.py) to model the
+    HC-SR04.
     """
 
     sigma_gyro: float               # rad/s, gyro white noise std per sample
