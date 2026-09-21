@@ -189,3 +189,129 @@ def test_no_mode_change_on_nominal_60s_run():
     modes = _closed_loop_with_gate(seed=42, T=60.0)
 
     assert set(modes) == {GateMode.NORMAL}
+
+
+from sim.disturbances import (
+    battery_droop_v_batt,
+    payload_shift_plant_params,
+    push_psi_dot_kick,
+    sensor_fault_accel_noise_params,
+    sensor_fault_gyro_bias_step,
+    surface_change_plant_params,
+)
+
+
+def _assert_enters_cautious_within(modes, onset, window_s, dt_control=0.005):
+    onset_idx = int(round(onset / dt_control))
+    deadline_idx = onset_idx + int(round(window_s / dt_control))
+    first_non_normal = next(
+        (i for i in range(onset_idx, min(deadline_idx, len(modes))) if modes[i] is not GateMode.NORMAL),
+        None,
+    )
+    assert first_non_normal is not None, f"never left NORMAL within {window_s}s of onset (t={onset}s)"
+
+
+def test_enters_cautious_after_push():
+    dp = default_disturbance_params()
+
+    def apply_disturbance(t, x_true, b_g_true, p, sensor_p):
+        x_true = x_true.copy()
+        x_true[4] = push_psi_dot_kick(x_true[4], t, dp.push_onset, 0.005, dp.push_magnitude)
+        return x_true, b_g_true, p, sensor_p, dp.battery_droop_v_nominal
+
+    modes = _closed_loop_with_gate(seed=42, T=20.0, apply_disturbance=apply_disturbance)
+    _assert_enters_cautious_within(modes, onset=dp.push_onset, window_s=dp.detection_window_s)
+
+
+def test_enters_cautious_after_surface_change():
+    dp = default_disturbance_params()
+
+    def apply_disturbance(t, x_true, b_g_true, p, sensor_p):
+        p_now = surface_change_plant_params(
+            t, dp.surface_change_onset, dp.surface_change_duration, dp.surface_change_fw, p
+        )
+        return x_true, b_g_true, p_now, sensor_p, dp.battery_droop_v_nominal
+
+    modes = _closed_loop_with_gate(seed=42, T=20.0, apply_disturbance=apply_disturbance)
+    _assert_enters_cautious_within(modes, onset=dp.surface_change_onset, window_s=dp.detection_window_s)
+
+
+def test_enters_cautious_after_gyro_bias_fault():
+    dp = default_disturbance_params()
+
+    def apply_disturbance(t, x_true, b_g_true, p, sensor_p):
+        b_g_true = sensor_fault_gyro_bias_step(
+            b_g_true, t, dp.gyro_bias_fault_onset, 0.005, dp.gyro_bias_fault_magnitude
+        )
+        return x_true, b_g_true, p, sensor_p, dp.battery_droop_v_nominal
+
+    modes = _closed_loop_with_gate(seed=42, T=20.0, apply_disturbance=apply_disturbance)
+    _assert_enters_cautious_within(modes, onset=dp.gyro_bias_fault_onset, window_s=dp.detection_window_s)
+
+
+def test_enters_cautious_after_accel_noise_fault():
+    dp = default_disturbance_params()
+
+    def apply_disturbance(t, x_true, b_g_true, p, sensor_p):
+        sensor_p_now = sensor_fault_accel_noise_params(
+            t, dp.accel_noise_fault_onset, dp.accel_noise_fault_duration, dp.accel_noise_fault_multiplier, sensor_p
+        )
+        return x_true, b_g_true, p, sensor_p_now, dp.battery_droop_v_nominal
+
+    modes = _closed_loop_with_gate(seed=42, T=20.0, apply_disturbance=apply_disturbance)
+    _assert_enters_cautious_within(modes, onset=dp.accel_noise_fault_onset, window_s=dp.detection_window_s)
+
+
+def test_enters_cautious_after_payload_shift():
+    """Needs a mild concurrent tilt to expose the mass/CoM mismatch --
+    near-perfect equilibrium doesn't accelerate enough for even this large
+    (dM=1kg, dL=0.1m) shift to move the NIS. See plan doc: substantially
+    smaller, more "realistic" shifts (dM up to 0.5kg, dL up to 0.05m) did
+    not trigger detection at all, even combined with tilt -- a genuine,
+    reportable sensitivity limit of the current tuning, not a bug."""
+    dp = default_disturbance_params()
+
+    def apply_disturbance(t, x_true, b_g_true, p, sensor_p):
+        p_now = payload_shift_plant_params(
+            t, dp.payload_shift_onset, dp.payload_shift_delta_M, dp.payload_shift_delta_L, p
+        )
+        return x_true, b_g_true, p_now, sensor_p, dp.battery_droop_v_nominal
+
+    modes = _closed_loop_with_gate(
+        seed=42, T=20.0, apply_disturbance=apply_disturbance, x0_psi_deg=dp.payload_shift_test_psi0_deg
+    )
+    _assert_enters_cautious_within(modes, onset=dp.payload_shift_onset, window_s=dp.detection_window_s)
+
+
+def test_enters_cautious_after_battery_droop():
+    """Battery droop alone near equilibrium never binds the voltage
+    ceiling (nominal commands are far below even a badly drooped
+    battery's limit) -- see plan doc. Paired here with a small companion
+    push, itself independently verified to be too small to trigger
+    detection on its own, to give the controller genuine voltage demand
+    the drooped battery can't fully supply.
+
+    The companion push fires at battery_droop_onset + battery_droop_duration
+    (once the ramp has actually finished, not at the droop's own onset):
+    battery_droop_v_batt RAMPS from v_nominal to v_drooped over that
+    duration (CLAUDE.md: "V_batt ramps down"), so at t=battery_droop_onset
+    itself V_batt is still ~v_nominal -- a push applied there would hit an
+    essentially-undrooped battery and prove nothing about degraded
+    recovery. Detection is measured from this same push-onset reference,
+    not from battery_droop_onset, since that's when the actual
+    controller-relevant event happens."""
+    dp = default_disturbance_params()
+    push_onset = dp.battery_droop_onset + dp.battery_droop_duration
+
+    def apply_disturbance(t, x_true, b_g_true, p, sensor_p):
+        v_batt = battery_droop_v_batt(
+            t, dp.battery_droop_onset, dp.battery_droop_duration, dp.battery_droop_v_nominal, dp.battery_droop_v_drooped
+        )
+        x_true = x_true.copy()
+        x_true[4] = push_psi_dot_kick(
+            x_true[4], t, push_onset, 0.005, dp.battery_droop_companion_push_magnitude
+        )
+        return x_true, b_g_true, p, sensor_p, v_batt
+
+    modes = _closed_loop_with_gate(seed=42, T=20.0, apply_disturbance=apply_disturbance)
+    _assert_enters_cautious_within(modes, onset=push_onset, window_s=dp.detection_window_s)
