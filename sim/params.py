@@ -153,3 +153,95 @@ def default_estimator_params() -> EstimatorParams:
         P0_psi_dot=1e-4,
         P0_bg=1e-6,
     )
+
+
+@dataclass(frozen=True)
+class GateParams:
+    """Normal/Cautious/Halt gate tuning (CLAUDE.md section 10) for the
+    windowed statistic epsilon_k = sum of the last N NIS samples.
+
+    CLAUDE.md says tau1 < tau2 should be "chi2(3N) quantiles." Empirically
+    (see docs/superpowers/plans/2026-09-21-gate-disturbances-step4.md),
+    this is not achievable for this closed loop: even chi2(3*200=600)'s
+    0.999999 quantile (~779) is below the observed nominal-run maximum of
+    epsilon_k (~959, across 10 independent 60s seeded runs) -- successive
+    NIS samples here are correlated (KF smoothing plus a slow ~10s
+    theta-position closed-loop pole), so the window sum's tail is far
+    heavier than the i.i.d. chi2(3N) model predicts, at any quantile
+    level. tau1/tau2 are therefore calibrated directly against real
+    simulated nominal runs with margin, not derived from a chi2 quantile
+    formula.
+    """
+
+    N: int              # window size (# of 5ms samples); 200 = 1s window
+    tau1: float          # CAUTIOUS entry (and NORMAL->HALT skip threshold)
+    tau2: float          # HALT entry
+    tau1_exit: float     # CAUTIOUS -> NORMAL hysteresis exit (< tau1)
+    tau2_exit: float     # HALT -> CAUTIOUS hysteresis exit (< tau2)
+    T_dwell: float       # seconds, minimum time in a mode before any transition
+
+
+def default_gate_params() -> GateParams:
+    return GateParams(N=200, tau1=1300.0, tau2=1800.0, tau1_exit=1040.0, tau2_exit=1300.0, T_dwell=0.5)
+
+
+@dataclass(frozen=True)
+class DisturbanceParams:
+    """Onset/duration/magnitude for each CLAUDE.md section 8 disturbance,
+    empirically verified (see docs/superpowers/plans/2026-09-21-gate-
+    disturbances-step4.md) to reliably trigger the gate's CAUTIOUS mode
+    within detection_window_s, without an immediate skip to HALT or (for
+    surface_change) numerical divergence of the plant.
+    """
+
+    surface_change_onset: float
+    surface_change_duration: float
+    surface_change_fw: float
+
+    battery_droop_onset: float
+    battery_droop_duration: float
+    battery_droop_v_full: float
+    battery_droop_v_drooped: float
+    battery_droop_companion_push_magnitude: float
+
+    push_onset: float
+    push_magnitude: float
+
+    gyro_bias_fault_onset: float
+    gyro_bias_fault_magnitude: float
+
+    accel_noise_fault_onset: float
+    accel_noise_fault_duration: float
+    accel_noise_fault_multiplier: float
+
+    payload_shift_onset: float
+    payload_shift_delta_M: float
+    payload_shift_delta_L: float
+    payload_shift_test_psi0_deg: float
+
+    detection_window_s: float
+
+
+def default_disturbance_params() -> DisturbanceParams:
+    return DisturbanceParams(
+        surface_change_onset=5.0,
+        surface_change_duration=10.0,
+        surface_change_fw=0.025,
+        battery_droop_onset=5.0,
+        battery_droop_duration=1.0,
+        battery_droop_v_full=7.4,
+        battery_droop_v_drooped=0.1,
+        battery_droop_companion_push_magnitude=0.05,
+        push_onset=5.0,
+        push_magnitude=0.1,
+        gyro_bias_fault_onset=5.0,
+        gyro_bias_fault_magnitude=0.05,
+        accel_noise_fault_onset=5.0,
+        accel_noise_fault_duration=10.0,
+        accel_noise_fault_multiplier=5.0,
+        payload_shift_onset=5.0,
+        payload_shift_delta_M=1.0,
+        payload_shift_delta_L=0.1,
+        payload_shift_test_psi0_deg=2.0,
+        detection_window_s=2.0,
+    )

@@ -94,3 +94,65 @@ def test_estimator_params_is_frozen():
         assert False, "EstimatorParams should be frozen"
     except AttributeError:
         pass
+
+
+from sim.params import (
+    DisturbanceParams,
+    GateParams,
+    default_disturbance_params,
+    default_gate_params,
+)
+
+
+def test_default_gate_params():
+    gp = default_gate_params()
+
+    assert gp.N == 200
+    assert gp.tau1 == 1300.0
+    assert gp.tau2 == 1800.0
+    assert gp.tau1_exit == 1040.0
+    assert gp.tau2_exit == 1300.0
+    assert gp.T_dwell == 0.5
+
+
+def test_gate_params_is_frozen():
+    gp = default_gate_params()
+    try:
+        gp.tau1 = 1.0
+        assert False, "GateParams should be frozen"
+    except AttributeError:
+        pass
+
+
+def test_default_disturbance_params():
+    dp = default_disturbance_params()
+
+    assert dp.surface_change_onset == 5.0
+    assert dp.surface_change_duration == 10.0
+    assert dp.surface_change_fw == 0.025
+    assert dp.battery_droop_onset == 5.0
+    assert dp.battery_droop_duration == 1.0
+    assert dp.battery_droop_v_full == 7.4
+    assert dp.battery_droop_v_drooped == 0.1
+    assert dp.battery_droop_companion_push_magnitude == 0.05
+    assert dp.push_onset == 5.0
+    assert dp.push_magnitude == 0.1
+    assert dp.gyro_bias_fault_onset == 5.0
+    assert dp.gyro_bias_fault_magnitude == 0.05
+    assert dp.accel_noise_fault_onset == 5.0
+    assert dp.accel_noise_fault_duration == 10.0
+    assert dp.accel_noise_fault_multiplier == 5.0
+    assert dp.payload_shift_onset == 5.0
+    assert dp.payload_shift_delta_M == 1.0
+    assert dp.payload_shift_delta_L == 0.1
+    assert dp.payload_shift_test_psi0_deg == 2.0
+    assert dp.detection_window_s == 2.0
+
+
+def test_disturbance_params_is_frozen():
+    dp = default_disturbance_params()
+    try:
+        dp.push_magnitude = 1.0
+        assert False, "DisturbanceParams should be frozen"
+    except AttributeError:
+        pass
