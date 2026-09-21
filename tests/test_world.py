@@ -7,33 +7,33 @@ from sim.world import cast_ray, pose_velocity
 
 
 def test_cast_ray_straight_up_and_down_from_center():
-    cp = CorridorParams(width=1.0)
+    cp = CorridorParams(width=1.0, ray_parallel_eps=1e-9)
 
     assert cast_ray(0.0, 0.5, np.radians(90), cp, 0.02, 4.0) == pytest.approx(0.5)
     assert cast_ray(0.0, 0.5, np.radians(-90), cp, 0.02, 4.0) == pytest.approx(0.5)
 
 
 def test_cast_ray_parallel_to_walls_returns_max_range():
-    cp = CorridorParams(width=1.0)
+    cp = CorridorParams(width=1.0, ray_parallel_eps=1e-9)
 
     assert cast_ray(0.0, 0.5, np.radians(0), cp, 0.02, 4.0) == 4.0
 
 
 def test_cast_ray_near_wall():
-    cp = CorridorParams(width=1.0)
+    cp = CorridorParams(width=1.0, ray_parallel_eps=1e-9)
 
     assert cast_ray(0.0, 0.1, np.radians(90), cp, 0.02, 4.0) == pytest.approx(0.9)
     assert cast_ray(0.0, 0.1, np.radians(-90), cp, 0.02, 4.0) == pytest.approx(0.1)
 
 
 def test_cast_ray_diagonal():
-    cp = CorridorParams(width=1.0)
+    cp = CorridorParams(width=1.0, ray_parallel_eps=1e-9)
 
     assert cast_ray(0.0, 0.5, np.radians(135), cp, 0.02, 4.0) == pytest.approx(0.5 * np.sqrt(2))
 
 
 def test_cast_ray_clips_to_range_bounds():
-    cp = CorridorParams(width=10.0)
+    cp = CorridorParams(width=10.0, ray_parallel_eps=1e-9)
 
     # true distance 0.001m, below range_min=0.02 -> clipped up
     assert cast_ray(0.0, 0.001, np.radians(-90), cp, 0.02, 4.0) == 0.02

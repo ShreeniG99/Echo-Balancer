@@ -277,10 +277,11 @@ class CorridorParams:
     "Design decision: the corridor is two infinite parallel walls"."""
 
     width: float  # m, distance between the two walls
+    ray_parallel_eps: float  # threshold below which sin(ray_heading) is treated as parallel to the walls in sim.world.cast_ray
 
 
 def default_corridor_params() -> CorridorParams:
-    return CorridorParams(width=1.0)
+    return CorridorParams(width=1.0, ray_parallel_eps=1e-9)
 
 
 @dataclass(frozen=True)

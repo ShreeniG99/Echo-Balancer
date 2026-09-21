@@ -187,6 +187,11 @@ def test_default_corridor_params():
     assert cp.width == 1.0
 
 
+def test_default_corridor_params_ray_parallel_eps():
+    cp = default_corridor_params()
+    assert cp.ray_parallel_eps == 1e-9
+
+
 def test_corridor_params_is_frozen():
     cp = default_corridor_params()
     try:

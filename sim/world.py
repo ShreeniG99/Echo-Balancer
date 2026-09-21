@@ -18,7 +18,7 @@ def cast_ray(
     [range_min, range_max]. Walls are at y=0 and y=corridor_p.width.
     """
     sin_h = np.sin(ray_heading)
-    eps = 1e-9
+    eps = corridor_p.ray_parallel_eps
     if sin_h > eps:
         dist = (corridor_p.width - y) / sin_h
     elif sin_h < -eps:
