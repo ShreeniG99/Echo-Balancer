@@ -139,6 +139,80 @@ source actually states them — no speculation.
 
 ---
 
+### Decision: `GateParams.tau1`/`tau2` are empirically calibrated, not literal χ²(3N) quantiles
+- **What:** `N=200` (1s window), `tau1=1300`, `tau2=1800`, `tau1_exit=1040`, `tau2_exit=1300`, `T_dwell=0.5s`.
+- **Reason:** Literal `chi2(3N)` quantiles are provably unachievable for this
+  system at any confidence level — see [FAILED_APPROACHES.md](FAILED_APPROACHES.md).
+  Values were calibrated with ~35% margin above the observed maximum of ε_k across
+  10 independent 60s seeded nominal runs (959.1), then verified against seed=42
+  specifically for the checked-in test.
+- **Alternatives considered:** literal χ²(3N) quantiles at any level (rejected,
+  provably unachievable — see FAILED_APPROACHES.md); fixing the underlying slow
+  θ-position pole via the §9 speed-servo integral term first (rejected as a
+  materially larger undertaking than this build step).
+- **Date:** 2026-09-21 (`docs/superpowers/plans/2026-09-21-gate-disturbances-step4.md`).
+- **Still current:** Yes. **Do not retune without reading the plan doc's "Design
+  decision: τ1/τ2 cannot be literal χ²(3N) quantiles" section first.**
+
+---
+
+### Decision: NORMAL→HALT "skip" fires when the window is full, not on a separate sustained-duration timer
+- **What:** `CLAUDE.md` §10's "No NORMAL → HALT skip unless ε_k > τ2 for a full
+  window" is implemented as: allowed exactly when the N-sample window is fully
+  populated (not mid-warm-up) and ε_k > τ2 — no separate persistence timer.
+- **Reason:** ε_k, being an N-sample sum, already *is* "a full window" of evidence
+  by construction; the simpler reading needs no extra state beyond what `step_gate`
+  already tracks, and is a faithful literal reading of the clause.
+- **Alternatives considered:** a separate sustained-duration timer distinct from
+  window-fullness (rejected — more complex, not clearly required by the text).
+- **Date:** 2026-09-21.
+- **Still current:** Yes.
+
+---
+
+### Decision: push disturbance is a ψ̇ velocity kick, not a torque impulse requiring an inertia conversion
+- **What:** `sim.disturbances.push_psi_dot_kick` adds a magnitude directly to ψ̇
+  (rad/s) at onset, rather than computing an angular impulse and converting via
+  `Δψ̇ = J/I_eff`.
+- **Reason:** Exact via the impulse-momentum theorem for some implied `J`; avoids
+  inventing an "effective inertia" constant with no clear source in the spec.
+- **Date:** 2026-09-21.
+- **Still current:** Yes.
+
+---
+
+### Decision: voltage clipping (`clip_voltage`, `V_batt`) lives in `sim/disturbances.py`, not `sim/plant.py`
+- **What:** `CLAUDE.md` §5 describes `v = clip(u_cmd, ±V_batt)`, but §8 says
+  "V_batt is a state of the disturbance model." Since V_batt only varies via the
+  battery-droop disturbance, and `sim/plant.py` (already approved, step 1) takes
+  already-clipped `v_l, v_r` directly with no signature change needed, clipping
+  lives with the disturbance model that owns V_batt.
+- **Reason:** Keeps `sim/plant.py` completely untouched by step 4.
+- **Date:** 2026-09-21.
+- **Still current:** Yes.
+
+---
+
+### Decision: battery-droop and payload-shift disturbance tests need a companion condition to be observable at all
+- **What:** `DisturbanceParams.battery_droop_companion_push_magnitude` (0.05 rad/s,
+  itself independently verified too small to trigger detection alone) and
+  `payload_shift_test_psi0_deg` (2°) are test-harness setup values, not part of
+  either disturbance's own physical profile per §8.
+- **Reason:** Both disturbances, tested in isolation near equilibrium, never bind
+  anything the gate can detect — battery droop's voltage ceiling is never
+  approached by the tiny nominal command magnitudes, and payload shift's mass/CoM
+  mismatch needs real acceleration (which near-perfect balance doesn't produce) to
+  manifest. See [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md) for the broader sensitivity
+  limitation this points at.
+- **Alternatives considered:** none — this was discovered empirically, not chosen
+  among options.
+- **Date:** 2026-09-21.
+- **Still current:** Yes. **Do not feed these two fields into §12's cross-controller
+  evaluation as if they were part of the canonical disturbance profile** — see
+  `DisturbanceParams`' own docstring in `sim/params.py`.
+
+---
+
 ### Decision: this session — Graphify installed project-scoped, git hooks not installed
 - **What:** Graphify (`graphifyy` on PyPI) installed via `uv tool install`,
   registered with Claude Code via `graphify install --project --platform claude`

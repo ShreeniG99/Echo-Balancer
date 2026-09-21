@@ -6,10 +6,27 @@ actually checking.
 
 ## Confirmed problems / gaps
 
-- **The gate itself doesn't exist yet.** `sim/gate.py` (Normal/Cautious/Halt state
-  machine, the windowed ε_k statistic) is the actual contribution of the project
-  per `CLAUDE.md` §1, and it hasn't been built (build-order step 4, not started).
-  Everything built so far (plant/estimator/NIS) is the foundation it sits on.
+- **The controller has a genuine, fairly narrow stability boundary near
+  `f_w≈0.03`.** Built without the §9 speed-servo integral term yet. Confirmed via
+  explicit finiteness checks (not just "falls over"): the closed-loop nonlinear
+  simulation produces NaN/inf at `f_w≥0.03`. The surface-change disturbance's
+  default magnitude (`0.025`) was chosen with margin below this, not just because
+  it "works." Worth reporting in the write-up as a real controller limitation.
+- **NIS-based gate detection is measurably less sensitive to smooth mass/CoM
+  shifts and to isolated battery droop than to the other disturbance types**, under
+  the current `EstimatorParams`/`GateParams` tuning. Payload shifts up to
+  `delta_M=0.5kg`/`delta_L=0.05m` never trigger detection even combined with a mild
+  tilt; battery droop alone near equilibrium never binds the voltage ceiling at
+  all. Both need a companion condition to be observable in a test (see
+  `DECISIONS.md`). This is a real, reportable sensitivity limit of the current
+  tuning, not a bug — but if the write-up claims the gate detects "disturbances"
+  broadly, this nuance needs stating.
+- **Literal χ²(3N) quantiles for the gate's τ1/τ2 are provably unachievable** for
+  this system, at any confidence level (see `FAILED_APPROACHES.md`). `GateParams`
+  uses empirically-calibrated thresholds instead. If the write-up needs to defend
+  a literal reading of `CLAUDE.md` §10 against this deviation, the root cause (a
+  slow ~10s θ-position closed-loop pole, itself caused by the missing §9
+  speed-servo integral term) is the thing to explain.
 - **Two PDFs live under `research/`** (`research/echo_balancer_research.pdf`,
   `research/"echo_balancer_detailed (1).pdf"` — moved there from the repo root
   on 2026-09-21), still untracked and not gitignored, purpose unstated anywhere

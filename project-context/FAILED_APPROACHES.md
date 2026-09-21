@@ -70,3 +70,53 @@ to work, for the stated reasons.
   independent 60s Monte Carlo runs to legitimately shrink the interval, which is
   a materially larger undertaking than adjusting one test's bounds.
 - **Source:** same plan doc, "Design decision: the NIS test's acceptance interval..."
+
+---
+
+### Failed (as a target, not as an implementation): literal χ²(3N) quantiles for the gate's τ1/τ2
+- **Approach tried:** `CLAUDE.md` §10 says gate thresholds should be "χ²(3N) quantiles."
+  First attempt: pick 0.95/0.999 quantiles of `chi2(3N)` at `N=40`.
+- **What happened:** A **nominal, undisturbed** 60s run immediately left NORMAL and
+  reached HALT (max ε_k = 229.7 against τ2=173.6). Sweeping `N` up to 200/800/1200
+  made it *worse*, not better: at every `N` tried, the empirical nominal-run maximum
+  of ε_k exceeded even `chi2(3N)`'s **0.999999** quantile (e.g. at `N=200`:
+  observed max 959.1 vs. quantile 779.3 — `chi2(600).cdf(959.1) ≈ 1.0` to
+  floating-point precision).
+- **Why abandoned:** Same root cause as the NIS-test i.i.d. failure above, but here
+  it's provable, not just empirically inconvenient: no quantile level, however
+  extreme, reproduces a usable threshold, because the closed loop's slow ~10s
+  θ-position pole (no speed-servo integral term yet) makes the NIS sequence's mean
+  wander on a timescale the windowed-sum statistic can't average out at any window
+  length actually useful for sub-second disturbance detection.
+- **What should not be repeated:** Don't try a "smarter" quantile level or a bigger
+  `N` to rescue the literal chi2(3N) reading — it cannot work while the slow-pole
+  issue exists. `GateParams.tau1`/`tau2` are calibrated empirically (with margin)
+  against real 60s nominal runs instead; see `DECISIONS.md`. Fixing this properly
+  would mean adding the speed-servo integral term from §9 first — a materially
+  larger undertaking than this build step.
+- **Source:** `docs/superpowers/plans/2026-09-21-gate-disturbances-step4.md`,
+  "Design decision: τ1/τ2 cannot be literal χ²(3N) quantiles."
+
+---
+
+### Failed: firing the battery-droop companion push at the droop's own onset
+- **Approach tried:** In the battery-droop gate test, apply the companion push
+  (needed because battery droop alone never binds the voltage ceiling near
+  equilibrium) at `battery_droop_onset` — the same instant the voltage ramp begins.
+- **What happened:** `sim.disturbances.battery_droop_v_batt` *ramps* V_batt linearly
+  from nominal to drooped over `battery_droop_duration` rather than stepping it.
+  At `t = onset` exactly, `frac = 0`, so V_batt is still ~7.4V (nominal) — the push
+  landed on an essentially undrooped battery and never actually got voltage-limited.
+  The test failed (never entered CAUTIOUS within the detection window) when the
+  full suite was actually run, despite an earlier exploratory script (which used an
+  instant step rather than a ramp) suggesting it would work.
+- **Why abandoned:** The fix is to fire the companion push at
+  `battery_droop_onset + battery_droop_duration` (once the ramp has actually
+  finished) and measure the detection window from that same reference.
+- **What should not be repeated:** Don't trust a pre-plan exploratory script's
+  timing numbers without re-deriving them against the actual committed function's
+  behavior (a step-function approximation used during exploration silently diverged
+  from the linear-ramp function that got implemented) — and don't skip actually
+  running the full test suite before committing, even when a plan document already
+  states specific "verified" latency figures.
+- **Source:** commit `2a5f0f0` message; `docs/superpowers/plans/2026-09-21-gate-disturbances-step4.md`, Task 5's `test_enters_cautious_after_battery_droop`.
