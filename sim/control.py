@@ -36,9 +36,19 @@ def design_lqr_speed_servo(p: PlantParams, speed_servo_p: SpeedServoParams) -> n
     Completely separate from design_lqr_balance -- does not modify or
     replace it. Callers apply K to the *error* state at runtime (theta_ref,
     theta_dot_ref, and the running integral are the caller's
-    responsibility, not this function's), since the closed-loop error
-    dynamics under a constant-rate reference match this nominal
-    (theta_ref=0) design exactly -- see the plan doc.
+    responsibility, not this function's). Under a ramping theta_ref, the
+    substitution theta_dot = e3 + theta_dot_ref introduces constant bias
+    terms into the error dynamics (via the nonzero A_planar[2,2] and
+    A_planar[3,2] planar-coupling entries) that are absent from this
+    function's nominal (theta_ref=0) design -- the closed-loop dynamics
+    are NOT identical to the nominal case. What holds regardless: integral
+    action drives the tracking-relevant error states (theta, theta_dot,
+    psi, psi_dot) to exactly zero at steady state (a Type-1 servo
+    rejecting the ramp-induced disturbance), at the cost of a nonzero
+    steady-state integrator value (z_eq != 0). Verified numerically --
+    see code review discussion, commit c2a25ee follow-up.
+
+    Returns K, shape (5,).
     """
     A_planar, B_planar = linearize_planar(p)
     A_aug = np.zeros((5, 5))

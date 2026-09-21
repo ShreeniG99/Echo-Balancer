@@ -292,12 +292,12 @@ class SpeedServoParams:
     augmentation. See sim.control.design_lqr_speed_servo.
     """
 
-    Q_theta: float
-    Q_psi: float
-    Q_theta_dot: float
-    Q_psi_dot: float
+    Q_theta: float      # weight on theta - theta_ref (position tracking error)
+    Q_psi: float        # weight on psi (body pitch) -- dominant term
+    Q_theta_dot: float  # weight on theta_dot - theta_dot_ref
+    Q_psi_dot: float    # weight on psi_dot
     Q_integral: float  # weight on z = integral(theta - theta_ref)
-    R: float
+    R: float            # weight on u = v_l + v_r
 
 
 def default_speed_servo_params() -> SpeedServoParams:
