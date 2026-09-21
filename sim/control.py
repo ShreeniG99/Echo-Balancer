@@ -10,7 +10,7 @@ import numpy as np
 from scipy.linalg import solve_continuous_are
 
 from sim.linearize import linearize_planar
-from sim.params import LQRBalanceParams, PlantParams, SpeedServoParams
+from sim.params import LQRBalanceParams, PlantParams, SpeedServoParams, WallFollowParams, YawControlParams
 
 
 def design_lqr_balance(p: PlantParams, lqr_p: LQRBalanceParams) -> np.ndarray:
@@ -67,3 +67,35 @@ def design_lqr_speed_servo(p: PlantParams, speed_servo_p: SpeedServoParams) -> n
     P = solve_continuous_are(A_aug, B_col, Q, R)
     K = np.linalg.inv(R) @ B_col.T @ P
     return K.flatten()
+
+
+def yaw_p_control(phi_dot_ref: float, phi_dot: float, yaw_p: YawControlParams) -> float:
+    """CLAUDE.md section 9: "Yaw: PD on phi_dot with differential
+    voltage." Proportional-only in practice -- see YawControlParams'
+    docstring for why (the plant's fast yaw dynamics relative to the
+    200Hz control rate make any nonzero Kd destabilize this loop).
+    Returns the differential voltage (v_r - v_l).
+    """
+    return yaw_p.Kp * (phi_dot_ref - phi_dot)
+
+
+def wall_following_control(
+    distance_error: float, prev_distance_error: float, dt: float, wall_p: WallFollowParams
+) -> tuple[float, float]:
+    """CLAUDE.md section 9: "side ultrasonic distance error -> PD ->
+    yaw-rate reference." distance_error = target_distance - side_reading
+    (positive when too close to the wall). Returns
+    (phi_dot_ref, new_prev_distance_error) for the caller to thread into
+    the next call.
+    """
+    d_error = (distance_error - prev_distance_error) / dt
+    phi_dot_ref = wall_p.Kp * distance_error + wall_p.Kd * d_error
+    return phi_dot_ref, distance_error
+
+
+def front_threshold_speed_adjust(front_distance: float, nominal_theta_dot_ref: float, wall_p: WallFollowParams) -> float:
+    """CLAUDE.md section 9: "Front ultrasonic below threshold -> slow
+    down." """
+    if front_distance < wall_p.front_slow_threshold:
+        return nominal_theta_dot_ref * wall_p.front_slow_factor
+    return nominal_theta_dot_ref

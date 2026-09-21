@@ -1,9 +1,12 @@
 import numpy as np
+import pytest
 
 from sim.control import design_lqr_balance, design_lqr_speed_servo
+from sim.control import front_threshold_speed_adjust, wall_following_control, yaw_p_control
 from sim.integrate import rk4_step, simulate
 from sim.linearize import linearize_planar
 from sim.params import default_lqr_balance_params, default_plant_params, default_speed_servo_params
+from sim.params import YawControlParams, default_wall_follow_params
 from sim.plant import f as plant_f
 
 
@@ -136,3 +139,30 @@ def test_speed_servo_tracks_constant_forward_speed_in_nonlinear_sim():
 
     steady_theta_dot = np.mean(theta_dot_hist[-200:])
     assert abs(steady_theta_dot - theta_dot_ref) < 0.1
+
+
+def test_yaw_p_control_formula():
+    yaw_p = YawControlParams(Kp=3.0)
+
+    assert yaw_p_control(1.0, 0.4, yaw_p) == pytest.approx(3.0 * (1.0 - 0.4))
+    assert yaw_p_control(0.0, 0.0, yaw_p) == 0.0
+
+
+def test_wall_following_control_formula_and_state_threading():
+    wall_p = default_wall_follow_params()
+
+    phi_dot_ref, new_prev_error = wall_following_control(0.2, 0.1, 0.05, wall_p)
+
+    expected = wall_p.Kp * 0.2 + wall_p.Kd * (0.2 - 0.1) / 0.05
+    assert phi_dot_ref == pytest.approx(expected)
+    assert new_prev_error == 0.2
+
+
+def test_front_threshold_speed_adjust_slows_down_below_threshold():
+    wall_p = default_wall_follow_params()
+
+    slowed = front_threshold_speed_adjust(0.3, 2.0, wall_p)
+    unaffected = front_threshold_speed_adjust(1.0, 2.0, wall_p)
+
+    assert slowed == pytest.approx(2.0 * wall_p.front_slow_factor)
+    assert unaffected == 2.0
