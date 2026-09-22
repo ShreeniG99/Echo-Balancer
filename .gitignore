@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
+.worktrees/
 
 # Third-party reference material (NXTway-GS File Exchange #19147), kept
 # locally for cross-checking sim/plant.py against the source, not redistributed.
