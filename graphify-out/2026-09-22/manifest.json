@@ -18,10 +18,10 @@
     "semantic_hash": "3bab25a3e651a9e4a00473d2257b99f9"
   },
   "sim/control.py": {
-    "mtime": 1789976264.145145,
-    "seen": 1790075373.9465382,
-    "ast_hash": "ad79645825491188be608566f2c55b75",
-    "semantic_hash": ""
+    "mtime": 1789831520.3384936,
+    "seen": 1789902516.594181,
+    "ast_hash": "caaad3344c083de937c1aa4d152b6e4c",
+    "semantic_hash": "caaad3344c083de937c1aa4d152b6e4c"
   },
   "sim/estimator.py": {
     "mtime": 1789888142.8737218,
@@ -42,10 +42,10 @@
     "semantic_hash": "debf8698abad45b0cbd6ada60f591d01"
   },
   "sim/params.py": {
-    "mtime": 1789974900.6655157,
-    "seen": 1790075373.9465609,
-    "ast_hash": "655acf4189f78a5ec3bdae268f94b727",
-    "semantic_hash": ""
+    "mtime": 1789886237.5545247,
+    "seen": 1789902516.5941942,
+    "ast_hash": "7ca20d5156bdad37201d04813ba73bf7",
+    "semantic_hash": "7ca20d5156bdad37201d04813ba73bf7"
   },
   "sim/plant.py": {
     "mtime": 1789797357.1020484,
@@ -54,10 +54,10 @@
     "semantic_hash": "d327be000bb95c9c865c4edbad10e403"
   },
   "sim/sensors.py": {
-    "mtime": 1789973705.7315724,
-    "seen": 1790075373.946568,
-    "ast_hash": "045c3c9ef5dc51390bae059d29114db1",
-    "semantic_hash": ""
+    "mtime": 1789886669.6021647,
+    "seen": 1789902516.5942006,
+    "ast_hash": "8e3a00ee3b36b14ccc722e08da0b172c",
+    "semantic_hash": "8e3a00ee3b36b14ccc722e08da0b172c"
   },
   "tests/__init__.py": {
     "mtime": 1789796613.9872053,
@@ -66,10 +66,10 @@
     "semantic_hash": "3bab25a3e651a9e4a00473d2257b99f9"
   },
   "tests/test_control.py": {
-    "mtime": 1789975137.4763222,
-    "seen": 1790075373.9465759,
-    "ast_hash": "6d3b1807072f033ecd544d40e5f716da",
-    "semantic_hash": ""
+    "mtime": 1789831793.7853115,
+    "seen": 1789902516.5942075,
+    "ast_hash": "2be0f16a16e41d347d1e441a06eede94",
+    "semantic_hash": "2be0f16a16e41d347d1e441a06eede94"
   },
   "tests/test_estimator.py": {
     "mtime": 1789888373.429885,
@@ -90,10 +90,10 @@
     "semantic_hash": "15a02d0b06b36aa3ad77312daba51514"
   },
   "tests/test_params.py": {
-    "mtime": 1789972189.441772,
-    "seen": 1790075373.946594,
-    "ast_hash": "d65a77296bc0107fe8e3de2addfb1ac3",
-    "semantic_hash": ""
+    "mtime": 1789886213.690341,
+    "seen": 1789902516.5942194,
+    "ast_hash": "74abbf374ccdba053ebdc830b246de65",
+    "semantic_hash": "74abbf374ccdba053ebdc830b246de65"
   },
   "tests/test_plant.py": {
     "mtime": 1789798398.9886956,
@@ -102,10 +102,10 @@
     "semantic_hash": "8dd2cc76b6626d04ebc31f0c4bc9a325"
   },
   "tests/test_sensors.py": {
-    "mtime": 1789972362.382197,
-    "seen": 1790075373.9465983,
-    "ast_hash": "d9a076ad72d3d80408e2a43746d6ea7a",
-    "semantic_hash": ""
+    "mtime": 1789887371.6787064,
+    "seen": 1789902516.5942252,
+    "ast_hash": "18c9cc388d395eaee0fa3ee6a2528531",
+    "semantic_hash": "18c9cc388d395eaee0fa3ee6a2528531"
   },
   ".claude/CLAUDE.md": {
     "mtime": 1789902452.2463362,
@@ -198,93 +198,39 @@
     "semantic_hash": ""
   },
   "project-context/CURRENT_STATE.md": {
-    "mtime": 1789976446.7807803,
-    "seen": 1790075373.946795,
-    "ast_hash": "efe31214c512a9c10c9deb76d700902d",
+    "mtime": 1789902722.4498894,
+    "seen": 1789902990.1435137,
+    "ast_hash": "b036681534bfabb2aa045bb002aedf60",
     "semantic_hash": ""
   },
   "project-context/DECISIONS.md": {
-    "mtime": 1789976487.022401,
-    "seen": 1790075373.9467971,
-    "ast_hash": "f8da4299345c0c1e69b5e3f5e0a4d0f5",
+    "mtime": 1789902765.4018445,
+    "seen": 1789902990.1435168,
+    "ast_hash": "1167a9d9ba6f00ca071970d6106de6d6",
     "semantic_hash": ""
   },
   "project-context/FAILED_APPROACHES.md": {
-    "mtime": 1789976515.2150264,
-    "seen": 1790075373.9468117,
-    "ast_hash": "41f09ef8a92f53837292bf854cdecdc1",
+    "mtime": 1789902790.758454,
+    "seen": 1789902990.1435204,
+    "ast_hash": "572780c0dd8b6090f5432c97b46f02b1",
     "semantic_hash": ""
   },
   "project-context/MODEL_HANDOFF.md": {
-    "mtime": 1789976395.2186167,
-    "seen": 1790075373.9468136,
-    "ast_hash": "3233833e50697ced4100ccb41da18ccc",
+    "mtime": 1789903051.9798794,
+    "seen": 1789946060.3123527,
+    "ast_hash": "b5559c2b0028455ee6f6ea3a5ded7b00",
     "semantic_hash": ""
   },
   "project-context/OPEN_PROBLEMS.md": {
-    "mtime": 1789976527.115497,
-    "seen": 1790075373.9468157,
-    "ast_hash": "cea300e11e9e2d505a3b5661dafa005e",
+    "mtime": 1789902814.5057337,
+    "seen": 1789902990.143527,
+    "ast_hash": "e931e5482380d4ccc8fdfaae99aad414",
     "semantic_hash": ""
   },
   "project-context/PROJECT_CONTEXT.md": {
     "mtime": 1789902692.459906,
     "seen": 1789902990.14353,
     "ast_hash": "210fbf05d1fb70f8096d3d5148da4d52",
-    "semantic_hash": ""
-  },
-  "sim/disturbances.py": {
-    "mtime": 1789950402.555459,
-    "seen": 1790075373.9465425,
-    "ast_hash": "3c63b4d6bc6f2d9e84d5f56e990561d3",
-    "semantic_hash": ""
-  },
-  "sim/gate.py": {
-    "mtime": 1789949956.2844827,
-    "seen": 1790075373.946549,
-    "ast_hash": "4b2431e8a8da5993451e9ca5396bb566",
-    "semantic_hash": ""
-  },
-  "sim/world.py": {
-    "mtime": 1789973707.794889,
-    "seen": 1790075373.9465702,
-    "ast_hash": "28a1231bb43fd1cd829d2dbfd1a653eb",
-    "semantic_hash": ""
-  },
-  "tests/test_disturbances.py": {
-    "mtime": 1789950382.579736,
-    "seen": 1790075373.9465775,
-    "ast_hash": "89f2cab0ada4cab87c688903931c2b77",
-    "semantic_hash": ""
-  },
-  "tests/test_gate.py": {
-    "mtime": 1789963495.8103147,
-    "seen": 1790075373.9465833,
-    "ast_hash": "eb822cf7c7e723801f12c41d450f5937",
-    "semantic_hash": ""
-  },
-  "tests/test_wall_following.py": {
-    "mtime": 1789975936.0132318,
-    "seen": 1790075373.9466007,
-    "ast_hash": "419f29caacaaf1fc872309672b49d542",
-    "semantic_hash": ""
-  },
-  "tests/test_world.py": {
-    "mtime": 1789972131.529745,
-    "seen": 1790075373.9466026,
-    "ast_hash": "b1286b8ed979c30e2d657d6e948bc5f0",
-    "semantic_hash": ""
-  },
-  "docs/superpowers/plans/2026-09-21-gate-disturbances-step4.md": {
-    "mtime": 1789963472.6273835,
-    "seen": 1790075373.9467874,
-    "ast_hash": "6c87d040996553943492f190f659e13d",
-    "semantic_hash": ""
-  },
-  "docs/superpowers/plans/2026-09-21-world-wallfollowing-step5.md": {
-    "mtime": 1789972137.5892425,
-    "seen": 1790075373.9467905,
-    "ast_hash": "deebffbfec197c1b5fd1d1871742e2ec",
     "semantic_hash": ""
   }
 }
