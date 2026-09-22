@@ -347,6 +347,16 @@ class RunParams:
     previously hardcoded identically across three separate test-only
     closed-loop harnesses -- centralized here per CLAUDE.md section 3's
     "no magic numbers anywhere else," now that sim/run.py is a real module.
+
+    Do not assume a lower corridor_theta_dot_ref_nominal is safer without
+    re-verifying it. The relationship between corridor speed and
+    gate-observed closed-loop stability is NOT monotonic: 0.1 rad/s was
+    measured to destabilize the closed loop entirely (numerical blow-up),
+    a WORSE outcome than 0.5 rad/s, which merely triggers spurious
+    CAUTIOUS transitions on an otherwise-nominal run. 0.3 was chosen from
+    an empirical sweep, not a formula -- see docs/superpowers/plans/2026-
+    09-22-run-batch-metrics-step6.md "Design decision 3" before changing
+    it.
     """
 
     dt_plant: float                       # s, plant RK4 step (section 7, 1kHz)

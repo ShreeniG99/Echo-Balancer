@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pytest
 import scipy.stats as stats
@@ -265,7 +266,19 @@ def test_cautious_mode_scales_down_corridor_speed_reference():
     tilt trips it almost immediately, per test_tilt_threshold_controller_
     detection's calibration) and confirm the robot's realized forward
     speed drops relative to a NORMAL-mode run -- CLAUDE.md section 10:
-    "CAUTIOUS (speed ref x 0.4 ...)"."""
+    "CAUTIOUS (speed ref x 0.4 ...)".
+
+    Confound note: this varies both controller (NAIVE vs TILT_THRESHOLD)
+    AND initial tilt (0 deg vs 2 deg) between the two runs, rather than
+    holding the initial condition fixed and only toggling the controller.
+    Verified empirically (code review, step 6) that this doesn't produce a
+    false pass: run the 2 deg initial tilt through NAIVE alone (so it
+    recovers under full-speed NORMAL control, no CAUTIOUS scaling) and its
+    own recovery-transient progress cost is only ~0.1% of normal_progress,
+    negligible next to the ~6.2% progress deficit actually measured here
+    between normal_progress and cautious_progress -- so the comparison
+    below isolates the CAUTIOUS speed-scaling effect well enough despite
+    not holding the initial condition perfectly fixed."""
     normal_config = EpisodeConfig(controller=ControllerType.NAIVE, T=10.0, wall_following=True)
     normal_df = run_episode(normal_config, seed=42)
     normal_progress = normal_df["theta"].iloc[-1] - normal_df["theta"].iloc[0]
@@ -280,3 +293,63 @@ def test_cautious_mode_scales_down_corridor_speed_reference():
 
     assert "CAUTIOUS" in set(cautious_df["mode"])
     assert cautious_progress < normal_progress
+
+
+def test_halt_mode_zeroes_corridor_speed_reference():
+    """CLAUDE.md section 10: HALT sets speed ref = 0, 'keep balancing in
+    place' -- verify this end-to-end in a wall-following episode (the
+    `theta_dot_ref, K5 = 0.0, K5_nominal` branch in sim/run.py), not just
+    at the toy step_tilt_gate level (tests/test_gate.py).
+
+    x0_psi_deg=15.0 (with T=8.0s) was determined empirically: it is the
+    smallest tested initial tilt that reliably drives the tilt-threshold
+    gate all the way to HALT (10 deg only reaches CAUTIOUS), while staying
+    comfortably under the 45 deg fall threshold. seed=42, matching every
+    other test in this file.
+
+    Finding (code review, step 6): HALT is NOT reached instantly. The
+    tilt-threshold gate's T_dwell=0.5s (TiltGateParams) blocks any
+    transition -- including the very first NORMAL->HALT one -- until 0.5s
+    have elapsed, so the robot spends that first 0.5s recovering from the
+    15 deg tilt under ordinary NORMAL (full-speed) control before HALT
+    ever engages; by then psi has mostly recovered (~1.3deg) but the pitch
+    recovery transient (dominant closed-loop pole ~-0.3 to -0.4 rad/s,
+    time constant ~2.5-4s) is far from settled. Consequently theta_dot
+    during the subsequent 0.5s HALT window does NOT sit near zero -- it
+    overshoots to ~+-0.85 rad/s (LARGER in magnitude than the 0.3 rad/s
+    NORMAL-mode cruise speed, RunParams.corridor_theta_dot_ref_nominal),
+    because freezing theta_ref (theta_dot_ref=0) is itself a step change
+    the position-tracking LQR must react to. This was cross-checked by
+    deliberately reintroducing two candidate HALT bugs (theta_dot_ref =
+    base_ref instead of 0.0; K5 = K5_cautious instead of K5_nominal) --
+    both produced SMALLER peak |theta_dot| (~0.30 and ~0.56 rad/s
+    respectively) than the correct code's ~0.85 rad/s, because they avoid
+    that reference-step discontinuity. So a tight "theta_dot stays near
+    zero" bound is not a reliable regression guard for this specific
+    mistake and is deliberately not used here; what IS a robust guard
+    (and what this test asserts) is that the branch executes without
+    diverging: HALT is reached, the episode never falls, no state goes
+    non-finite, theta_dot stays well-bounded (< 3.0 rad/s, comfortably
+    below the ~7.8 rad/s peak seen during the initial 15 deg free-tilt
+    recovery itself, so still catches a genuine blow-up), and the gate
+    later returns all the way to NORMAL, demonstrating the closed loop is
+    stable rather than stuck or diverging."""
+    config = EpisodeConfig(
+        controller=ControllerType.TILT_THRESHOLD, T=8.0, wall_following=True,
+        x0_psi_deg=15.0,
+    )
+    df = run_episode(config, seed=42)
+
+    assert "HALT" in set(df["mode"])
+    assert not df["fallen"].any()
+    assert np.isfinite(df[["theta", "psi", "phi", "theta_dot", "psi_dot", "phi_dot"]].to_numpy()).all()
+
+    halt_rows = df[df["mode"] == "HALT"]
+    assert not halt_rows.empty
+    # Bounded, not diverging -- see docstring for why a tight near-zero
+    # bound is not the right (or a reliable) check here.
+    assert halt_rows["theta_dot"].abs().max() < 3.0
+
+    # The gate recovers all the way back to NORMAL later in the episode --
+    # evidence the HALT branch leaves the closed loop stable, not stuck.
+    assert "NORMAL" in set(df["mode"].iloc[halt_rows.index[-1]:])
