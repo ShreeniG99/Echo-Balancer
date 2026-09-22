@@ -32,9 +32,13 @@ batch-metrics-step6.md for the pre-verified design decisions this makes:
   intentional, tested divergence from tests/test_gate.py's
   _closed_loop_with_gate harness, which clips the combined command
   (`u = clip_voltage(u_cmd, v_batt)`) and then implicitly splits it in
-  two by applying (u/2, u/2) to the plant. The two are equivalent while
-  unsaturated (every currently-tested nominal/disturbance scenario), but
-  diverge once |u_cmd| > 2*V_batt -- see
+  two by applying (u/2, u/2) to the plant. The two are equivalent only
+  while both are unsaturated, i.e. |u_cmd| <= V_batt (every
+  currently-tested nominal/disturbance scenario); they start diverging
+  as soon as |u_cmd| > V_batt, which is where the old clip-then-split
+  method begins saturating. (|u_cmd| > 2*V_batt is a different,
+  unrelated threshold -- that's where the new per-motor clip itself
+  starts saturating, since each motor sees |u_cmd/2| > V_batt.) See
   test_voltage_clips_per_motor_independently_when_saturated in
   tests/test_run.py. Per-motor clipping is used here because v_l/v_r are
   literally the plant's two actual motor-voltage inputs
