@@ -46,16 +46,14 @@ actually checking.
 - **One Japanese-language reference PDF has a garbled filename**
   (`nxtway_gs/docs/japanese/NXTway-GS âéâfâïâxü[âXèJö¡.pdf` — Shift-JIS mojibake).
   Cosmetic; low priority; the directory is gitignored reference material anyway.
+- **Sustained nonzero `theta_dot` (forward motion) with active yaw correction significantly inflates the windowed NIS statistic epsilon_k, confirming the encoder-per-wheel-quantization-under-yaw suspicion this file previously flagged as untested.** A nominal (undisturbed) 60s wall-following run at `theta_dot_ref=2.0` rad/s reaches `max_epsilon=1605.56`, exceeding `tau1=1300` — a false-fallback from motion alone. Straight-line-only motion (no yaw) at the same speed only reaches `max_epsilon≈2465` at `theta_dot_ref=2.0` too, but yaw correction makes lower speeds unsafe as well (e.g. `0.5` rad/s: straight-line-only was comfortably safe in isolation, but with yaw active the safe ceiling drops well below that). `sim/run.py`'s corridor episodes use `theta_dot_ref_nominal=0.3` (verified: `max_epsilon=909.13`) specifically because of this. Root cause not fully characterized (plausible: `EstimatorParams.Q_theta=1e-8` is far too small to absorb the apparent process noise from per-wheel encoder quantization sweeping through many bins per second at speed) — fixing this (e.g. a `theta_dot`-dependent `Q_theta`, or an average-then-quantize encoder redesign) is out of scope for step 6.
+- **A very low nonzero corridor speed (`theta_dot_ref_nominal=0.1` rad/s) destabilizes the closed loop entirely** (observed epsilon reaching `~2.1e8` without a fall-check present, almost certainly an undetected fall) — the relationship between corridor speed and stability/false-fallback is not monotonic. Not investigated further; `sim/run.py`'s fall condition (CLAUDE.md section 5) exists specifically so this terminates cleanly (`fallen=True`) instead of producing meaningless downstream numbers.
+- **Push-type disturbances (psi_dot velocity kicks) are not reliably detected by the NIS gate once wall-following/corridor mode is active**, even at the calibrated-safe `theta_dot_ref_nominal=0.3`: max epsilon in the push-response window reaches only ~1085-1187 (under `tau1=1300`) across every corridor architecture variant tried. This is inherited from an already-thin margin in the balance-only architecture (`design_lqr_balance`'s own push margin is only 3.5% over `tau1`), not a new step-6 regression, but it means `experiments/run_batch.py`'s per-controller metrics table will likely show a real, reportable "missed" or delayed detection for push-type disturbances specifically for the NIS-gate controller — expected, not a bug to chase.
+- **HALT mode's transient behavior does not match its steady-state description.** When HALT is triggered mid-recovery from a large initial disturbance, `theta_dot` overshoots well beyond the NORMAL-mode cruise speed before settling — because `TiltGateParams.T_dwell=0.5s` is much shorter than the pitch-recovery pole's time constant (~2.5-4s). See `FAILED_APPROACHES.md`'s "assuming HALT mode makes theta_dot settle near zero" entry for the full empirical validation (including the bug-injection check that ruled out a simpler "near zero" bound as non-discriminating).
 
 ## Suspected problems (plausible, not verified)
 
-- ~~Encoder quantize-then-average vs. average-then-quantize may matter once yaw
-  is exercised~~ **Resolved, stale as of 2026-09-21.** A dedicated φ≠0 test
-  (`tests/test_sensors.py::test_encoder_quantizes_per_wheel_before_averaging`,
-  commit `2580160`) already exists and confirms the per-wheel reading behaves
-  as intended with nonzero yaw. What's still genuinely open: this is a
-  hand-constructed unit-level case, not yet exercised by a real closed-loop run
-  with actual yaw motion (that needs `sim/world.py`/wall-following to generate).
+- **Encoder quantize-then-average vs. average-then-quantize matters under real yaw motion, confirmed.** `tests/test_sensors.py::test_encoder_quantizes_per_wheel_before_averaging` already confirmed the per-wheel reading behaves as intended in a hand-constructed unit case; step 6's `sim/run.py` corridor episodes are the first *real closed-loop* exercise of this under active yaw control, and the interaction is large enough to be the leading suspected cause of the sustained-motion false-fallback finding above (see "Confirmed problems").
 - **The per-plant-step (1ms) feedback recovery test may not represent the final
   200Hz ZOH control loop's stability margin.** It was explicitly built as a
   temporary, more-conservative stand-in (see
@@ -85,12 +83,3 @@ actually checking.
   walls, per §9's own "cut wall-following first if behind schedule" spirit)
   has nothing ahead to trigger it via a genuine head-on obstacle in the closed
   loop — only heading-drift-toward-a-side-wall exercises it indirectly.
-- **Whether/how `sim/run.py` (step 6) should unify the three overlapping
-  test-only closed-loop harnesses** that have now accumulated
-  (`tests/test_estimator.py::_run_nominal_closed_loop`,
-  `tests/test_gate.py::_closed_loop_with_gate`,
-  `tests/test_wall_following.py::test_follows_wall_without_crashing`) — each
-  independently hand-rolls plant-stepping/control/state-threading plumbing.
-  Not yet a confirmed problem (each is still small and independently correct),
-  but the duplication is growing and `run.py` is the natural point to resolve
-  it, one way or another.
