@@ -26,6 +26,22 @@ batch-metrics-step6.md for the pre-verified design decisions this makes:
   episodes are directly comparable on identical seeds/disturbances
   (CLAUDE.md section 12) -- only which gate's mode actually drives control
   differs.
+- Voltage clipping (CLAUDE.md section 5: "v = clip(u_cmd, -V_batt,
+  +V_batt)") is applied PER MOTOR, to v_l/v_r independently, not to the
+  combined LQR command before it is split in half. This is an
+  intentional, tested divergence from tests/test_gate.py's
+  _closed_loop_with_gate harness, which clips the combined command
+  (`u = clip_voltage(u_cmd, v_batt)`) and then implicitly splits it in
+  two by applying (u/2, u/2) to the plant. The two are equivalent while
+  unsaturated (every currently-tested nominal/disturbance scenario), but
+  diverge once |u_cmd| > 2*V_batt -- see
+  test_voltage_clips_per_motor_independently_when_saturated in
+  tests/test_run.py. Per-motor clipping is used here because v_l/v_r are
+  literally the plant's two actual motor-voltage inputs
+  (sim.plant.f(x, v_l, v_r, p)), and it is also the only form that
+  generalizes correctly to Task 5's wall-following episodes, where
+  differential yaw drive makes v_l != v_r -- clipping the summed command
+  and then splitting it in half would be wrong there.
 """
 
 from dataclasses import dataclass
@@ -171,6 +187,7 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
         if fallen:
             v_l, v_r = 0.0, 0.0
         else:
+            # Per-motor clip (not combined-then-split) -- see module docstring.
             v_l = clip_voltage(v_l_cmd, v_batt_now)
             v_r = clip_voltage(v_r_cmd, v_batt_now)
         u_prev = v_l + v_r

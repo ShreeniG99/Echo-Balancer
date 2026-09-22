@@ -1,10 +1,8 @@
-import numpy as np
 import pandas as pd
 import pytest
 import scipy.stats as stats
 
 from sim.disturbances import (
-    battery_droop_v_batt,
     payload_shift_plant_params,
     push_psi_dot_kick,
     sensor_fault_accel_noise_params,
@@ -110,11 +108,11 @@ def test_nis_gate_detects_each_disturbance_within_window(name, onset_attr, build
     assert latency is not None, f"{name}: never left NORMAL within {dp.detection_window_s}s of onset"
 
 
-@pytest.mark.parametrize("name,expect_detected,expected_latency_s", [
-    ("gyro_bias_fault", True, 0.740),
-    ("payload_shift", True, 0.555),
+@pytest.mark.parametrize("name,expected_latency_s", [
+    ("gyro_bias_fault", 0.740),
+    ("payload_shift", 0.555),
 ])
-def test_tilt_threshold_controller_detection(name, expect_detected, expected_latency_s):
+def test_tilt_threshold_controller_detection(name, expected_latency_s):
     """Verified pre-plan against the balance-only architecture: the
     tilt-threshold baseline detects gyro_bias_fault at 0.740s and
     payload_shift (+its required companion tilt) at 0.555s -- see the plan
@@ -176,3 +174,35 @@ def test_fall_condition_ends_episode_and_cuts_motors():
     assert bool(df["fallen"].iloc[0]) is True
     assert df["v_l"].iloc[0] == 0.0
     assert df["v_r"].iloc[0] == 0.0
+
+
+def test_voltage_clips_per_motor_independently_when_saturated():
+    """A large enough initial tilt drives the LQR command past V_batt --
+    v_l/v_r are each clipped independently to +/-V_batt (not the combined
+    command clipped then split in half). Both hit exactly the same clip
+    bound here since v_l_cmd==v_r_cmd in the balance-only path (no
+    differential drive), but this locks in the clip-per-motor code path
+    in sim/run.py, distinct from tests/test_gate.py's
+    _closed_loop_with_gate harness (which clips the combined command
+    before splitting) -- see sim/run.py's module docstring and the plan
+    doc's Task 4 code-review note.
+
+    x0_psi_deg=25.0 was determined empirically: with
+    K4 = design_lqr_balance(default_plant_params(), default_lqr_balance_params()),
+    -K4 @ [0, radians(25), 0, 0] / 2 ~= 10.76 V, comfortably past the
+    7.4V nominal V_batt (>40% over) while 25 deg is comfortably under the
+    45 deg fall threshold. The KF's state estimate starts at zero and is
+    only partially corrected by the first measurement update, so
+    saturation is not visible until the second control tick (index 1,
+    t=0.005s) rather than the very first -- confirmed by direct
+    inspection of v_l/v_r across the first two ticks at several
+    candidate tilts."""
+    config = EpisodeConfig(controller=ControllerType.NIS_GATE, T=0.01, wall_following=False, x0_psi_deg=25.0)
+
+    df = run_episode(config, seed=42)
+
+    v_batt = default_disturbance_params().battery_droop_v_nominal
+    assert len(df) == 2
+    assert not df["fallen"].any()
+    assert abs(df["v_l"].iloc[1]) == pytest.approx(v_batt)
+    assert abs(df["v_r"].iloc[1]) == pytest.approx(v_batt)
