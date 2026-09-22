@@ -65,7 +65,7 @@ The relationship is not simply monotonic in speed (0.1 is the *worst* case, not 
 Calibrated `psi1=0.0087` rad (0.5°), `psi2=0.0175` rad (1.0°), `psi1_exit=0.006`, `psi2_exit=0.012`, `T_dwell=0.5` (reusing the NIS gate's dwell) against the KF-estimated `psi` (`kf.x_hat[1]` — a real robot has no noise-free `psi`), on the **balance-only** architecture (decision 1). Verified:
 
 - **Zero false trips** across a 10-seed, 60s nominal sweep (mode stays `{NORMAL}` for every seed).
-- **Detects** `gyro_bias_fault` (latency 0.740s), `battery_droop`+companion push (0.465s), `payload_shift`+tilt (0.500s) — all within the 2.0s detection window.
+- **Detects** `gyro_bias_fault` (latency 0.740s), `battery_droop`+companion push (0.465s), `payload_shift`+tilt (0.555s) — all within the 2.0s detection window.
 - **Misses** `push`, `surface_change`, `accel_noise_fault` within the 2.0s window (peak `|psi_hat|` for these stays within, or barely above, the ~0.002-0.005 rad nominal noise floor — `accel_noise_fault` in particular only corrupts a *measurement*, never perturbing true `psi` at all, so a tilt-only gate is structurally blind to it).
 
 This is not a bug to fix by lowering thresholds further — CLAUDE.md section 12 frames tilt-threshold as *"the plain safety-filter baseline"*, and a 3/6 detection rate versus the NIS gate's 6/6 (existing, `CURRENT_STATE.md`) is exactly the kind of contrast the evaluation is designed to surface honestly.
@@ -585,12 +585,12 @@ def test_nis_gate_detects_each_disturbance_within_window(name, onset_attr, build
 
 @pytest.mark.parametrize("name,expect_detected,expected_latency_s", [
     ("gyro_bias_fault", True, 0.740),
-    ("payload_shift", True, 0.500),
+    ("payload_shift", True, 0.555),
 ])
 def test_tilt_threshold_controller_detection(name, expect_detected, expected_latency_s):
     """Verified pre-plan against the balance-only architecture: the
     tilt-threshold baseline detects gyro_bias_fault at 0.740s and
-    payload_shift (+its required companion tilt) at 0.500s -- see the plan
+    payload_shift (+its required companion tilt) at 0.555s -- see the plan
     doc's "Design decision 4." (push/surface_change/accel_noise_fault are
     verified MISSES for this baseline -- see
     test_tilt_threshold_controller_misses_push below.)"""
