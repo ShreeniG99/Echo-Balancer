@@ -315,3 +315,58 @@ def test_enters_cautious_after_battery_droop():
 
     modes = _closed_loop_with_gate(seed=42, T=20.0, apply_disturbance=apply_disturbance)
     _assert_enters_cautious_within(modes, onset=push_onset, window_s=dp.detection_window_s)
+
+
+from sim.gate import TiltGateState, initial_tilt_gate_state, step_tilt_gate
+from sim.params import TiltGateParams
+
+
+def _toy_tilt_gate_params() -> TiltGateParams:
+    """Small, easy-to-hand-verify thresholds; not the real calibrated
+    values (those are exercised by the run_episode-level tests in
+    tests/test_run.py)."""
+    return TiltGateParams(psi1=1.0, psi2=2.0, psi1_exit=0.4, psi2_exit=1.0, T_dwell=2.0)
+
+
+def test_initial_tilt_gate_state():
+    state = initial_tilt_gate_state()
+    assert state.mode is GateMode.NORMAL
+    assert state.time_in_mode == 0.0
+
+
+def test_tilt_gate_normal_to_cautious_and_back_with_dwell():
+    tgp = _toy_tilt_gate_params()
+    state = initial_tilt_gate_state()
+
+    # (psi_hat, expected_mode) per step, hand-derived from step_tilt_gate's
+    # logic -- no windowing, so this is simpler than step_gate's toy sequence.
+    expected = [
+        (0.5, GateMode.NORMAL),   # time_in_mode=1.0, dwell (2.0) not yet satisfied
+        (0.5, GateMode.NORMAL),   # time_in_mode=2.0, dwell satisfied, |0.5|<=psi1(1.0): stays NORMAL
+        (1.5, GateMode.CAUTIOUS),  # time_in_mode=3.0, |1.5|>psi1: -> CAUTIOUS, time_in_mode resets to 0
+        (1.5, GateMode.CAUTIOUS),  # time_in_mode=1.0, dwell blocks any transition
+        (0.2, GateMode.NORMAL),   # time_in_mode=2.0, dwell satisfied, |0.2|<psi1_exit(0.4): -> NORMAL
+    ]
+    for psi_hat, expected_mode in expected:
+        state = step_tilt_gate(state, psi_hat, dt=1.0, tilt_gate_p=tgp)
+        assert state.mode is expected_mode
+
+
+def test_tilt_gate_normal_to_halt_direct():
+    tgp = _toy_tilt_gate_params()
+    state = TiltGateState(mode=GateMode.NORMAL, time_in_mode=5.0)  # dwell already satisfied
+
+    state = step_tilt_gate(state, 2.5, dt=1.0, tilt_gate_p=tgp)
+
+    assert state.mode is GateMode.HALT
+    assert state.time_in_mode == 0.0
+
+
+def test_tilt_gate_halt_to_cautious_exit():
+    tgp = _toy_tilt_gate_params()
+    state = TiltGateState(mode=GateMode.HALT, time_in_mode=5.0)  # dwell already satisfied
+
+    state = step_tilt_gate(state, 0.5, dt=1.0, tilt_gate_p=tgp)
+
+    assert state.mode is GateMode.CAUTIOUS
+    assert state.time_in_mode == 0.0
