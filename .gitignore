@@ -14,3 +14,5 @@ __pycache__/
 # but per-machine LLM cost tracking and local query cache are not.
 /graphify-out/cost.json
 /graphify-out/cache/
+
+experiments/results/
