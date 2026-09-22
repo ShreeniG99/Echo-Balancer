@@ -206,3 +206,77 @@ def test_voltage_clips_per_motor_independently_when_saturated():
     assert not df["fallen"].any()
     assert abs(df["v_l"].iloc[1]) == pytest.approx(v_batt)
     assert abs(df["v_r"].iloc[1]) == pytest.approx(v_batt)
+
+
+def test_corridor_nominal_60s_stays_normal_at_the_calibrated_safe_speed():
+    """Verified pre-plan: seed=42, 60s, wall_following=True,
+    corridor_theta_dot_ref_nominal=0.3 (RunParams default) -- completes all
+    12000 steps with mode_set={'NORMAL'}, max epsilon=909.13 (comparable to
+    the balance-only nominal range of 823-951, well under tau1=1300). See
+    the plan doc's "Design decision 3" -- tests/test_wall_following.py's
+    own theta_dot_ref_nominal=2.0 is NOT used here; it was verified unsafe
+    once the gate is actually watching (max epsilon 1605.56)."""
+    config = EpisodeConfig(controller=ControllerType.NIS_GATE, T=60.0, wall_following=True)
+
+    df = run_episode(config, seed=42)
+
+    assert len(df) == int(round(60.0 / 0.005))
+    assert set(df["mode"]) == {"NORMAL"}
+    assert not df["fallen"].any()
+    assert df["epsilon"].max() < 1300.0
+
+
+def test_corridor_episode_makes_forward_progress_and_stays_in_corridor():
+    config = EpisodeConfig(controller=ControllerType.NAIVE, T=20.0, wall_following=True)
+
+    df = run_episode(config, seed=42)
+
+    assert (df["pos_y"] > 0.0).all()
+    assert (df["pos_y"] < 1.0).all()  # default corridor width
+    assert df["theta"].iloc[-1] > df["theta"].iloc[0]  # rolled forward
+    assert not df["front_dist"].isna().any()
+    assert not df["right_dist"].isna().any()
+
+
+def test_corridor_push_disturbance_is_a_known_miss_for_the_nis_gate():
+    """Documents, rather than hides, the plan doc's "Design decision 1"
+    finding: push-type disturbances are not reliably detected once the
+    control law is design_lqr_speed_servo, even at the calibrated-safe
+    corridor speed. Verified pre-plan: seed=42, max epsilon in the
+    detection window = 1085.51, under tau1=1300 -- MISSED. This is an
+    inherited, pre-existing thin margin (design_lqr_balance's own push
+    margin was already only 3.5% over tau1), not a step-6 regression."""
+    dp = default_disturbance_params()
+
+    def apply_push(t, x, bg, p, sp):
+        x = x.copy()
+        x[4] = push_psi_dot_kick(x[4], t, dp.push_onset, 0.005, dp.push_magnitude)
+        return x, bg, p, sp, dp.battery_droop_v_nominal
+
+    config = EpisodeConfig(controller=ControllerType.NIS_GATE, T=20.0, wall_following=True, disturbance=apply_push)
+    df = run_episode(config, seed=42)
+
+    latency = _first_non_normal_latency(df, dp.push_onset, dp.detection_window_s)
+    assert latency is None
+
+
+def test_cautious_mode_scales_down_corridor_speed_reference():
+    """Force CAUTIOUS via the tilt-threshold controller (a large initial
+    tilt trips it almost immediately, per test_tilt_threshold_controller_
+    detection's calibration) and confirm the robot's realized forward
+    speed drops relative to a NORMAL-mode run -- CLAUDE.md section 10:
+    "CAUTIOUS (speed ref x 0.4 ...)"."""
+    normal_config = EpisodeConfig(controller=ControllerType.NAIVE, T=10.0, wall_following=True)
+    normal_df = run_episode(normal_config, seed=42)
+    normal_progress = normal_df["theta"].iloc[-1] - normal_df["theta"].iloc[0]
+
+    dp = default_disturbance_params()
+    cautious_config = EpisodeConfig(
+        controller=ControllerType.TILT_THRESHOLD, T=10.0, wall_following=True,
+        x0_psi_deg=dp.payload_shift_test_psi0_deg,  # 2 deg -- enough to trip CAUTIOUS quickly, verified in Task 4
+    )
+    cautious_df = run_episode(cautious_config, seed=42)
+    cautious_progress = cautious_df["theta"].iloc[-1] - cautious_df["theta"].iloc[0]
+
+    assert "CAUTIOUS" in set(cautious_df["mode"])
+    assert cautious_progress < normal_progress

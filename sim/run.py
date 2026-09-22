@@ -55,7 +55,13 @@ from typing import Callable, Optional
 import numpy as np
 import pandas as pd
 
-from sim.control import design_lqr_balance
+from sim.control import (
+    design_lqr_balance,
+    design_lqr_speed_servo,
+    front_threshold_speed_adjust,
+    wall_following_control,
+    yaw_p_control,
+)
 from sim.disturbances import clip_voltage
 from sim.estimator import (
     KalmanState,
@@ -78,6 +84,7 @@ from sim.integrate import rk4_step
 from sim.params import (
     PlantParams,
     SensorParams,
+    default_corridor_params,
     default_disturbance_params,
     default_estimator_params,
     default_gate_params,
@@ -85,10 +92,15 @@ from sim.params import (
     default_plant_params,
     default_run_params,
     default_sensor_params,
+    default_speed_servo_params,
+    default_speed_servo_params_cautious,
     default_tilt_gate_params,
+    default_wall_follow_params,
+    default_yaw_control_params,
 )
 from sim.plant import f as plant_f
-from sim.sensors import accelerometer, encoder, gyro
+from sim.sensors import accelerometer, encoder, gyro, ultrasonic
+from sim.world import cast_ray, pose_velocity
 
 DisturbanceFn = Callable[
     [float, np.ndarray, float, PlantParams, SensorParams],
@@ -129,9 +141,21 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
 
     K4 = design_lqr_balance(p, lqr_p)
 
+    wall_p = default_wall_follow_params()
+
+    if config.wall_following:
+        K5_nominal = design_lqr_speed_servo(p, default_speed_servo_params())
+        K5_cautious = design_lqr_speed_servo(p, default_speed_servo_params_cautious())
+        yaw_p = default_yaw_control_params()
+        corridor_p = default_corridor_params()
+
+        def pose_dotf(pp, uu):
+            return pose_velocity(pp, uu, p)
+
     dt_control = run_p.dt_control
     dt_plant = run_p.dt_plant
     n_sub = int(round(dt_control / dt_plant))
+    n_control_per_ultrasonic = int(round((1.0 / sensor_p.ultrasonic_rate_hz) / dt_control))
 
     Ad, Bd = discretize(p, dt_control)
     C = measurement_matrix()
@@ -142,11 +166,18 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
     n_steps = int(round(config.T / dt_control))
 
     x_true = np.array([0.0, np.radians(config.x0_psi_deg), 0.0, 0.0, 0.0, 0.0])
+    pos = np.array([0.0, wall_p.target_distance])
     b_g_true = 0.0
     kf = KalmanState(x_hat=np.zeros(5), P=initial_covariance(est_p))
     nis_gate_state = initial_gate_state()
     tilt_gate_state = initial_tilt_gate_state()
     u_prev = 0.0
+    theta_ref = 0.0
+    z = 0.0
+    phi_dot_ref = 0.0
+    prev_wall_err = 0.0
+    front_reading = sensor_p.ultrasonic_range_max
+    right_reading = sensor_p.ultrasonic_range_max
 
     rows = []
 
@@ -185,8 +216,36 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
 
         fallen = bool(abs(x_true[1]) > run_p.fall_psi_threshold)
 
-        u_cmd = -K4 @ kf.x_hat[:4]
-        v_l_cmd = v_r_cmd = u_cmd / 2
+        if config.wall_following:
+            if k % n_control_per_ultrasonic == 0:
+                heading = x_true[2]
+                true_right = cast_ray(pos[0], pos[1], heading - np.pi / 2, corridor_p, 0.02, 4.0)
+                true_front = cast_ray(pos[0], pos[1], heading, corridor_p, 0.02, 4.0)
+                right_reading = ultrasonic(true_right, sensor_p, rng)
+                front_reading = ultrasonic(true_front, sensor_p, rng)
+                wall_err = wall_p.target_distance - right_reading
+                phi_dot_ref, prev_wall_err = wall_following_control(
+                    wall_err, prev_wall_err, 1.0 / sensor_p.ultrasonic_rate_hz, wall_p
+                )
+
+            base_ref = front_threshold_speed_adjust(front_reading, run_p.corridor_theta_dot_ref_nominal, wall_p)
+            if mode is GateMode.NORMAL:
+                theta_dot_ref, K5 = base_ref, K5_nominal
+            elif mode is GateMode.CAUTIOUS:
+                theta_dot_ref, K5 = base_ref * run_p.cautious_speed_scale, K5_cautious
+            else:  # HALT: speed ref = 0, "keep balancing in place" -- nominal gain (see plan doc "Design decision 6")
+                theta_dot_ref, K5 = 0.0, K5_nominal
+
+            err5 = np.array([x_true[0] - theta_ref, x_true[1], x_true[3] - theta_dot_ref, x_true[4], z])
+            theta_ref += theta_dot_ref * dt_control
+            u_common = -K5 @ err5
+            z += (x_true[0] - theta_ref) * dt_control
+            diff_v = yaw_p_control(phi_dot_ref, x_true[5], yaw_p)
+            v_l_cmd = u_common / 2 - diff_v / 2
+            v_r_cmd = u_common / 2 + diff_v / 2
+        else:
+            u_cmd = -K4 @ kf.x_hat[:4]
+            v_l_cmd = v_r_cmd = u_cmd / 2
 
         if fallen:
             v_l, v_r = 0.0, 0.0
@@ -200,10 +259,12 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
             "t": t,
             "theta": x_true[0], "psi": x_true[1], "phi": x_true[2],
             "theta_dot": x_true[3], "psi_dot": x_true[4], "phi_dot": x_true[5],
-            "pos_x": np.nan, "pos_y": np.nan,
+            "pos_x": pos[0] if config.wall_following else np.nan,
+            "pos_y": pos[1] if config.wall_following else np.nan,
             "mode": mode.value,
             "nis": nis, "epsilon": epsilon,
-            "front_dist": np.nan, "right_dist": np.nan,
+            "front_dist": front_reading if config.wall_following else np.nan,
+            "right_dist": right_reading if config.wall_following else np.nan,
             "v_l": v_l, "v_r": v_r,
             "fallen": fallen,
         })
@@ -213,5 +274,7 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
 
         for _ in range(n_sub):
             x_true = rk4_step(xdotf, x_true, (v_l, v_r), dt_plant)
+            if config.wall_following:
+                pos = rk4_step(pose_dotf, pos, (x_true[3], x_true[2]), dt_plant)
 
     return pd.DataFrame(rows)
