@@ -252,8 +252,6 @@ def test_wall_follow_params_is_frozen():
         pass
 
 
-import math as _math
-
 from sim.params import (
     RunParams,
     TiltGateParams,
@@ -267,7 +265,7 @@ def test_default_run_params():
     rp = default_run_params()
     assert rp.dt_plant == 0.001
     assert rp.dt_control == 0.005
-    assert rp.fall_psi_threshold == _math.radians(45.0)
+    assert rp.fall_psi_threshold == math.radians(45.0)
     assert rp.cautious_speed_scale == 0.4
     assert rp.corridor_theta_dot_ref_nominal == 0.3
 
@@ -297,6 +295,18 @@ def test_tilt_gate_params_is_frozen():
         assert False, "TiltGateParams should be frozen"
     except AttributeError:
         pass
+
+
+def test_tilt_gate_params_ordering_invariants():
+    """CLAUDE.md section 10: psi1 < psi2, with hysteresis exits below their
+    entries. A typo swapping psi1_exit/psi2_exit (or similar) would pass
+    every other test in this file and only surface as a mysteriously
+    broken step_tilt_gate -- so pin the ordering directly."""
+    tp = default_tilt_gate_params()
+
+    assert tp.psi1 < tp.psi2
+    assert tp.psi1_exit < tp.psi1
+    assert tp.psi2_exit < tp.psi2
 
 
 def test_default_speed_servo_params_cautious_has_softer_q_than_nominal():

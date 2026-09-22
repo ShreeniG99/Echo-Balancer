@@ -385,7 +385,7 @@ class TiltGateParams:
     psi2: float        # rad, HALT entry
     psi1_exit: float   # rad, CAUTIOUS -> NORMAL hysteresis exit
     psi2_exit: float   # rad, HALT -> CAUTIOUS hysteresis exit
-    T_dwell: float      # s, minimum time in a mode before any transition
+    T_dwell: float     # s, minimum time in a mode before any transition
 
 
 def default_tilt_gate_params() -> TiltGateParams:
