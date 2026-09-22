@@ -250,3 +250,62 @@ def test_wall_follow_params_is_frozen():
         assert False, "WallFollowParams should be frozen"
     except AttributeError:
         pass
+
+
+import math as _math
+
+from sim.params import (
+    RunParams,
+    TiltGateParams,
+    default_run_params,
+    default_speed_servo_params_cautious,
+    default_tilt_gate_params,
+)
+
+
+def test_default_run_params():
+    rp = default_run_params()
+    assert rp.dt_plant == 0.001
+    assert rp.dt_control == 0.005
+    assert rp.fall_psi_threshold == _math.radians(45.0)
+    assert rp.cautious_speed_scale == 0.4
+    assert rp.corridor_theta_dot_ref_nominal == 0.3
+
+
+def test_run_params_is_frozen():
+    rp = default_run_params()
+    try:
+        rp.dt_control = 0.01
+        assert False, "RunParams should be frozen"
+    except AttributeError:
+        pass
+
+
+def test_default_tilt_gate_params():
+    tp = default_tilt_gate_params()
+    assert tp.psi1 == 0.0087
+    assert tp.psi2 == 0.0175
+    assert tp.psi1_exit == 0.006
+    assert tp.psi2_exit == 0.012
+    assert tp.T_dwell == 0.5
+
+
+def test_tilt_gate_params_is_frozen():
+    tp = default_tilt_gate_params()
+    try:
+        tp.psi1 = 1.0
+        assert False, "TiltGateParams should be frozen"
+    except AttributeError:
+        pass
+
+
+def test_default_speed_servo_params_cautious_has_softer_q_than_nominal():
+    from sim.params import default_speed_servo_params
+    nominal = default_speed_servo_params()
+    cautious = default_speed_servo_params_cautious()
+    assert cautious.Q_theta == nominal.Q_theta / 5
+    assert cautious.Q_psi == nominal.Q_psi / 5
+    assert cautious.Q_theta_dot == nominal.Q_theta_dot / 5
+    assert cautious.Q_psi_dot == nominal.Q_psi_dot / 5
+    assert cautious.Q_integral == nominal.Q_integral / 5
+    assert cautious.R == nominal.R  # R unchanged -- only Q is "softer" per CLAUDE.md section 10

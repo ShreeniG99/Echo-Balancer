@@ -4,6 +4,7 @@ All numeric values from CLAUDE.md section 6.1 (Simulation v0, NXTway-GS
 values) live here. No other module may define a numeric physical constant.
 """
 
+import math
 from dataclasses import dataclass
 
 
@@ -337,3 +338,69 @@ class WallFollowParams:
 
 def default_wall_follow_params() -> WallFollowParams:
     return WallFollowParams(target_distance=0.5, Kp=2.0, Kd=0.5, front_slow_threshold=0.5, front_slow_factor=0.3)
+
+
+@dataclass(frozen=True)
+class RunParams:
+    """Timing and cross-cutting constants for sim.run's closed-loop episode
+    runner (CLAUDE.md sections 5, 7, 10). dt_plant/dt_control were
+    previously hardcoded identically across three separate test-only
+    closed-loop harnesses -- centralized here per CLAUDE.md section 3's
+    "no magic numbers anywhere else," now that sim/run.py is a real module.
+    """
+
+    dt_plant: float                       # s, plant RK4 step (section 7, 1kHz)
+    dt_control: float                     # s, control/estimation loop (section 7, 200Hz)
+    fall_psi_threshold: float             # rad, |psi| beyond this ends the episode (section 5)
+    cautious_speed_scale: float           # CAUTIOUS mode speed-ref multiplier (section 10)
+    corridor_theta_dot_ref_nominal: float # rad/s, default forward-speed reference for wall-following episodes -- see docs/superpowers/plans/2026-09-22-run-batch-metrics-step6.md "Design decision 3": 0.3, NOT tests/test_wall_following.py's 2.0 (verified unsafe once the gate is actually watching: max epsilon 1605.6 over a 60s nominal run, vs tau1=1300).
+
+
+def default_run_params() -> RunParams:
+    return RunParams(
+        dt_plant=0.001,
+        dt_control=0.005,
+        fall_psi_threshold=math.radians(45.0),
+        cautious_speed_scale=0.4,
+        corridor_theta_dot_ref_nominal=0.3,
+    )
+
+
+@dataclass(frozen=True)
+class TiltGateParams:
+    """Normal/Cautious/Halt thresholds for the tilt-threshold baseline gate
+    (CLAUDE.md section 12: "mode switches on |psi| thresholds only"), keyed
+    directly on the KF-estimated psi each tick (no windowed statistic,
+    unlike the NIS gate -- a real robot has no access to true noise-free
+    psi, so this uses kf.x_hat[1], never x_true[1]). Empirically calibrated
+    against the balance-only nominal/disturbance closed loop -- see
+    docs/superpowers/plans/2026-09-22-run-batch-metrics-step6.md "Design
+    decision 4." This baseline is EXPECTED to miss disturbances that don't
+    perturb true psi (accel_noise_fault) or that recover too fast to
+    accumulate a visible tilt (push, surface_change) -- that gap versus the
+    NIS gate's higher sensitivity is the point of comparing them.
+    """
+
+    psi1: float        # rad, CAUTIOUS entry
+    psi2: float        # rad, HALT entry
+    psi1_exit: float   # rad, CAUTIOUS -> NORMAL hysteresis exit
+    psi2_exit: float   # rad, HALT -> CAUTIOUS hysteresis exit
+    T_dwell: float      # s, minimum time in a mode before any transition
+
+
+def default_tilt_gate_params() -> TiltGateParams:
+    return TiltGateParams(psi1=0.0087, psi2=0.0175, psi1_exit=0.006, psi2_exit=0.012, T_dwell=0.5)
+
+
+def default_speed_servo_params_cautious() -> SpeedServoParams:
+    """CLAUDE.md section 10: CAUTIOUS mode uses "softer Q in the LQR gain
+    set." All five Q weights of default_speed_servo_params() divided by 5
+    (R unchanged) -- LQR gain is invariant to a uniform Q/R rescale, so
+    this is exactly equivalent to R x5. Verified stable: dominant
+    closed-loop pole -0.263 vs nominal -0.394 (~33% slower/gentler
+    response), ||K|| ratio 0.967. Chosen over reducing Q_psi alone, which
+    barely changes K at all since Q_psi already dominates Q_theta/
+    Q_theta_dot/Q_psi_dot by 3 orders of magnitude -- see the plan doc's
+    "Design decision 5" for the full pole comparison.
+    """
+    return SpeedServoParams(Q_theta=0.2, Q_psi=200.0, Q_theta_dot=0.2, Q_psi_dot=0.2, Q_integral=2.0, R=1e2)
