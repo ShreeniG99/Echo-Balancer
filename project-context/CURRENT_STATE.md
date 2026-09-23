@@ -161,7 +161,7 @@ Build order per `CLAUDE.md` §14 — steps 1-6 complete:
      fall rate across a real seed population — see
      [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md) and [DECISIONS.md](DECISIONS.md).
 
-Full test run (this session): `122 passed` (several minutes — step 6 adds two
+Full test run (this session): `126 passed` (several minutes — step 6 adds two
 new 60s closed-loop corridor tests plus a 10-seed x 7-scenario x 3-controller
 batch smoke test on top of the existing steps 1-5 suite).
 
