@@ -170,6 +170,23 @@ def test_detection_delay_empty_but_correctly_columned_when_no_disturbance_onset(
     assert len(result) == 0
 
 
+def test_progress_empty_but_correctly_columned_when_no_steps():
+    # steps_df has zero rows -- the groupby("episode_id") loop body never
+    # runs. Regression test: this used to return pd.DataFrame([]), a
+    # zero-column frame whose .merge(episodes_df[...], on="episode_id")
+    # raises KeyError: 'episode_id'.
+    episodes_df = pd.DataFrame([
+        _episode("e1", "nis_gate", "nominal", fell=False),
+        _episode("e2", "naive", "nominal", fell=False),
+    ])
+    steps_df = pd.DataFrame(columns=["episode_id", "t", "theta"])
+
+    result = progress(steps_df, episodes_df)
+
+    assert list(result.columns) == ["episode_id", "progress_m", "controller", "scenario"]
+    assert len(result) == 0
+
+
 def test_summarize_batch_handles_corridor_nominal_only_shape():
     # Reproduces experiments/run_batch.py's own
     # run_batch(wall_following=True, scenario_names=["nominal"]) shape: every

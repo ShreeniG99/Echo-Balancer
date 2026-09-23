@@ -150,6 +150,16 @@ Build order per `CLAUDE.md` §14 — steps 1-6 complete:
      cruise speed before settling, because `TiltGateParams.T_dwell` is much
      shorter than the pitch-recovery pole's time constant — see
      [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md) for the full detail on all three.
+     **A fourth finding, discovered later while verifying the `progress()`
+     empty-DataFrame fix against a real end-to-end batch run (not the tests'
+     synthetic DataFrames):** the real 10-seed nominal corridor batch shows a
+     ~20% fall rate independent of gate choice (`naive`/`nis_gate` both 0.2,
+     same falling seeds, near-identical fall times) plus an additional
+     mode-switching-correlated fall rate specific to `tilt_threshold` (0.5).
+     `corridor_theta_dot_ref_nominal=0.3`'s "safe" designation (Decision
+     below) was only ever validated against gate-triggering at `seed=42`, not
+     fall rate across a real seed population — see
+     [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md) and [DECISIONS.md](DECISIONS.md).
 
 Full test run (this session): `122 passed` (several minutes — step 6 adds two
 new 60s closed-loop corridor tests plus a 10-seed x 7-scenario x 3-controller

@@ -336,6 +336,7 @@ source actually states them — no speculation.
 - **Alternatives considered:** `2.0` (rejected, unsafe once the gate is watching); `0.5` (rejected, exceeds `tau1`); `0.1`/lower (rejected — the relationship is not monotonic in speed, and `0.1` specifically destabilizes the closed loop entirely, not fully explained here).
 - **Date:** 2026-09-22.
 - **Still current:** Yes.
+- **Update (same day):** This decision was validated against gate-triggering (epsilon vs `tau1`) at `seed=42` only. A full 10-seed batch run later surfaced a genuine ~20% nominal fall rate independent of gate choice at this speed (`naive`/`nis_gate` both 0.2, same falling seeds 3 and 5, near-identical fall times; `tilt_threshold` 0.5, its own additional falls correlated with its own mode-switching) — see `OPEN_PROBLEMS.md`. The epsilon-based safety claim above is still correct on its own terms; "safe" here should not be read as "never falls."
 
 ---
 

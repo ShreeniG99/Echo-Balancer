@@ -125,7 +125,12 @@ file in `tests/`; a module isn't "done" without passing tests. Full layout:
   watching (exceeds `tau1=1300`) — a false-fallback from sustained motion
   alone, not any disturbance. `0.3` was chosen from a sweep as the best-margined
   safe value (`max_epsilon=909.13`); the speed/safety relationship is **not**
-  monotonic (`0.1` rad/s destabilizes the closed loop entirely).
+  monotonic (`0.1` rad/s destabilizes the closed loop entirely). **This "safe"
+  designation was only ever validated against gate-triggering (epsilon vs
+  `tau1`) at `seed=42` — a later real 10-seed batch run found a genuine ~20%
+  nominal fall rate at this speed, independent of gate choice. Do not read
+  "safe" as "never falls"; see "Current problems" below and
+  [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).**
 - **CAUTIOUS mode's "softer Q" speed-servo gain divides all five
   `SpeedServoParams` Q weights by 5** (not just `Q_psi`, which barely moves `K`
   since it already dominates by 3 orders of magnitude). HALT uses the
@@ -200,6 +205,13 @@ file in `tests/`; a module isn't "done" without passing tests. Full layout:
 - **HALT mode's transient overshoots the NORMAL cruise speed before
   settling** — `TiltGateParams.T_dwell` is much shorter than the
   pitch-recovery pole's time constant, so HALT can engage mid-recovery-transient.
+- **A real 10-seed nominal corridor batch run shows a ~20% fall rate independent
+  of gate choice** (`naive`/`nis_gate` both 0.2, same falling seeds 3/5,
+  near-identical fall times; `tilt_threshold` 0.5, its extra falls correlated
+  with its own mode-switching) at the "safe" `corridor_theta_dot_ref_nominal=0.3`
+  speed — found only via a real end-to-end batch run, not any of step 6's own
+  (narrower) tests. Fall-rate safety at this speed is an open question, not a
+  solved one.
 - Full list: [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).
 
 ## Exact config/parameters in force right now

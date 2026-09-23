@@ -69,7 +69,7 @@ def progress(steps_df: pd.DataFrame, episodes_df: pd.DataFrame) -> pd.DataFrame:
         ep_steps = ep_steps.sort_values("t")
         dist = R * (ep_steps["theta"].iloc[-1] - ep_steps["theta"].iloc[0])
         rows.append({"episode_id": episode_id, "progress_m": dist})
-    result = pd.DataFrame(rows)
+    result = pd.DataFrame(rows, columns=["episode_id", "progress_m"])
     return result.merge(episodes_df[["episode_id", "controller", "scenario"]], on="episode_id")
 
 
