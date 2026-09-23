@@ -278,9 +278,18 @@ processes here, so a worker-side lookup of the module-level
 test's `monkeypatch`-patched value — caught by a test producing 12000 rows
 instead of 200. Fixed by threading the resolved scenario tuple through
 `delayed()` explicitly instead. All 122 tests pass (84 before this step, 38
-new: `test_run.py` 14, `test_metrics.py` 8, `test_run_batch.py` 3, plus 13
-more from `test_params.py`/`test_gate.py` additions for `RunParams`/
-`TiltGateParams`/the cautious gain/`step_tilt_gate`).
+new pytest-collected cases, verified via `git diff 96f914b..ed551a0` test-function
+counts plus `pytest --collect-only`). Breakdown, in collected-case counts
+(noted where this differs from test-function counts, due to parametrization):
+`test_run.py` — 14 test functions / 17 collected cases (two are parametrized:
+`test_nis_gate_detects_each_disturbance_within_window` expands to 3 cases,
+`test_tilt_threshold_controller_detection` expands to 2); `test_metrics.py` —
+8 functions / 8 cases; `test_run_batch.py` — 3 functions / 3 cases (28
+collected cases across these three new files, all unparametrized except the
+two noted above); plus 10 new test functions / 10 collected cases (no
+parametrization added) from `test_params.py` (6 new tests) and `test_gate.py`
+(4 new tests) additions for `RunParams`/`TiltGateParams`/the cautious
+gain/`step_tilt_gate`. 28 + 10 = 38, matching the total.
 
 **Graphify status:** refreshed via `graphify update .` at the end of this step
 (the codebase changed substantially — `sim/run.py`, `analysis/`,

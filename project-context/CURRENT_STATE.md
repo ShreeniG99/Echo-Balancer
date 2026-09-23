@@ -132,8 +132,8 @@ Build order per `CLAUDE.md` §14 — steps 1-6 complete:
      (caught by a test failing with 12000 rows instead of 200) — see
      [DECISIONS.md](DECISIONS.md).
    - `analysis/metrics.py`: `fall_rate`, `false_fallback_fraction`,
-     `missed_fallback`, `detection_delay`, `progress` — four of `CLAUDE.md`
-     §12's five metrics (threshold-sensitivity sweeps are deferred to
+     `missed_fallback`, `detection_delay`, `progress` — five of `CLAUDE.md`
+     §12's six metrics (threshold-sensitivity sweeps are deferred to
      `quantum/qubo.py`'s grid search, step 7). Operates on the
      `(steps_df, episodes_df)` pair `run_batch.py` produces; tested against
      small hand-built synthetic DataFrames, no full simulation needed.
