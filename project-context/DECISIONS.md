@@ -318,3 +318,47 @@ source actually states them — no speculation.
   (command: `graphify hook install`) rather than installed silently.
 - **Date:** 2026-09-20 (this session).
 - **Still current:** Yes, pending the user's choice on git hooks.
+
+---
+
+### Decision: `sim/run.py` unifies the three closed-loop harnesses via an `EpisodeConfig.wall_following` flag, not a single shared control law
+- **What:** `run_episode` uses `design_lqr_balance` (KF-fed) for every episode where `wall_following=False`, exactly reproducing `tests/test_gate.py`/`tests/test_estimator.py`'s already-calibrated algorithm. `wall_following=True` episodes use `design_lqr_speed_servo` (true-state-fed, matching step 5's precedent), required regardless since `design_lqr_balance` cannot track a nonzero speed reference.
+- **Reason:** Measured that switching the balance/gate control law to `design_lqr_speed_servo` (either KF-fed or true-state-fed, at `theta_dot_ref=0` or nonzero) erodes the push-disturbance detection margin below `tau1=1300` in every variant tried (1344.87 for the existing `design_lqr_balance`, vs. 1111-1187 for every speed-servo variant) — `GateParams` was calibrated against `design_lqr_balance` specifically and does not transfer.
+- **Alternatives considered:** a single shared `design_lqr_speed_servo` control law everywhere (rejected — breaks push/battery-droop detection, would require a full GateParams recalibration, a materially larger undertaking than this step).
+- **Date:** 2026-09-22 (`docs/superpowers/plans/2026-09-22-run-batch-metrics-step6.md`).
+- **Still current:** Yes.
+
+---
+
+### Decision: corridor episodes default to `corridor_theta_dot_ref_nominal=0.3` rad/s, not `tests/test_wall_following.py`'s `2.0`
+- **What:** `RunParams.corridor_theta_dot_ref_nominal=0.3`.
+- **Reason:** With the KF/gate actually watching a real wall-following (yaw-active) closed loop for the first time, `2.0` rad/s produces `max_epsilon=1605.56` over a nominal 60s run (exceeds `tau1=1300`, spurious CAUTIOUS). Swept `0.1/0.2/0.3/0.5`: `0.1` diverges/falls (`max_epsilon` reaches `~2.1e8` without a fall-check), `0.2`→689, `0.3`→909 (comparable to the balance-only nominal range of 823-951), `0.5`→1605 (unsafe). `0.3` was chosen as the best-margined safe value.
+- **Alternatives considered:** `2.0` (rejected, unsafe once the gate is watching); `0.5` (rejected, exceeds `tau1`); `0.1`/lower (rejected — the relationship is not monotonic in speed, and `0.1` specifically destabilizes the closed loop entirely, not fully explained here).
+- **Date:** 2026-09-22.
+- **Still current:** Yes.
+- **Update (same day):** This decision was validated against gate-triggering (epsilon vs `tau1`) at `seed=42` only. A full 10-seed batch run later surfaced a genuine ~20% nominal fall rate independent of gate choice at this speed (`naive`/`nis_gate` both 0.2, same falling seeds 3 and 5, near-identical fall times; `tilt_threshold` 0.5, its own additional falls correlated with its own mode-switching) — see `OPEN_PROBLEMS.md`. The epsilon-based safety claim above is still correct on its own terms; "safe" here should not be read as "never falls."
+
+---
+
+### Decision: `default_speed_servo_params_cautious()` divides every `SpeedServoParams` Q weight by 5
+- **What:** CAUTIOUS mode's "softer Q" gain set (CLAUDE.md section 10).
+- **Reason:** Reducing `Q_psi` alone (the dominant weight) barely changes `K` (`||K||` ratio 0.998) since it already dominates the other weights by 3 orders of magnitude. Dividing all five weights by 5 (mathematically equivalent to `R x5`) gives a genuinely gentler gain — verified stable, dominant pole `-0.263` vs nominal `-0.394` (~33% slower), `||K||` ratio 0.967.
+- **Date:** 2026-09-22.
+- **Still current:** Yes.
+
+---
+
+### Decision: HALT mode uses the nominal (not cautious) speed-servo gain
+- **What:** Only CAUTIOUS uses `default_speed_servo_params_cautious()`; HALT sets `theta_dot_ref=0` but keeps the nominal gain.
+- **Reason:** CLAUDE.md section 10 states "softer Q" only for CAUTIOUS, not HALT — a literal reading, consistent with prior steps' approach to ambiguous spec clauses (see the "NORMAL->HALT skip" and "push is a velocity kick" decisions above).
+- **Date:** 2026-09-22.
+- **Still current:** Yes.
+
+---
+
+### Decision: `experiments/run_batch.py`'s workers receive scenario data as an explicit parameter, not via module-level lookup
+- **What:** `_run_one(controller, scenario_name, scenario, seed, wall_following)` takes the already-resolved `DISTURBANCE_SCENARIOS[scenario_name]` tuple as an explicit argument; `run_batch()` resolves it in the parent process and passes it through `delayed()`, rather than having `_run_one` look up the module-level `DISTURBANCE_SCENARIOS` dict itself.
+- **Reason:** `joblib.Parallel`'s default `loky` backend needs process-based workers; on this Windows dev machine, `multiprocessing.get_all_start_methods()` returns only `['spawn']` (no fork/forkserver), so every worker process re-imports the module fresh from disk and never inherits the parent process's in-memory state. A worker-side lookup of `DISTURBANCE_SCENARIOS` therefore silently reads on-disk module state, invisible to anything (e.g. a test's `monkeypatch`) that modified it in the parent process. Caught by `tests/test_run_batch.py::test_run_batch_writes_readable_parquet` failing with 12000 rows instead of an expected 200 (the un-patched `nominal` duration of 60s was used instead of the patched 1.0s).
+- **Alternatives considered:** none seriously — this is the correct general pattern (workers should never depend on mutable global state across a process boundary); dropping to `n_jobs=1`/threading to sidestep the issue was explicitly rejected as it would defeat the purpose of using joblib at all.
+- **Date:** 2026-09-22.
+- **Still current:** Yes. **If porting this codebase to a POSIX system where `fork` is available, do not "simplify" this back to a worker-side lookup** — the bug is latent on fork-based systems too (it just doesn't manifest, since fork *does* inherit parent memory), and would resurface the moment anyone runs on spawn-only Windows again.

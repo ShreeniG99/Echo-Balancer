@@ -1,5 +1,5 @@
 {
-  "0": "test_estimator.py",
+  "0": "run.py",
   "1": "default_plant_params",
   "2": "test_gate.py",
   "3": "rk4_step",
@@ -11,8 +11,11 @@
   "9": "What You Must Do When Invoked",
   "10": "Decisions — Echo Balancer",
   "11": "Echo Balancer — Simulation Spec",
-  "12": "design_lqr_balance",
+  "12": "cast_ray",
   "13": "graphify reference: extra exports and benchmark",
+  "14": "What currently works (verified: 122/122 tests passing, `uv run pytest -q`)",
+  "15": "run_episode",
+  "16": "design_lqr_balance",
   "17": "graphify reference: query, path, explain",
   "18": "graphify reference: add a URL and watch a folder",
   "19": "graphify reference: commit hook and native CLAUDE.md integration",
@@ -20,5 +23,14 @@
   "21": "graphify reference: GitHub clone and cross-repo merge",
   "22": "graphify reference: transcribe video and audio",
   "23": ".claude/CLAUDE.md",
-  "24": "extraction-spec.md"
+  "24": "extraction-spec.md",
+  "25": "run_batch.py",
+  "26": "test_control.py",
+  "27": "front_threshold_speed_adjust",
+  "28": "ControllerType",
+  "29": "control.py",
+  "30": "default_disturbance_params",
+  "31": "sensor_fault_gyro_bias_step",
+  "32": "analysis/__init__.py",
+  "33": "experiments/__init__.py"
 }

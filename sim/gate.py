@@ -11,7 +11,7 @@ rather than literal chi2(3N) quantiles.
 from dataclasses import dataclass
 from enum import Enum
 
-from sim.params import GateParams
+from sim.params import GateParams, TiltGateParams
 
 
 class GateMode(Enum):
@@ -72,3 +72,47 @@ def step_gate(state: GateState, nis_k: float, dt: float, gate_p: GateParams) -> 
         time_in_mode = 0.0
 
     return GateState(mode=new_mode, nis_window=window, time_in_mode=time_in_mode), epsilon
+
+
+@dataclass(frozen=True)
+class TiltGateState:
+    mode: GateMode
+    time_in_mode: float
+
+
+def initial_tilt_gate_state() -> TiltGateState:
+    return TiltGateState(mode=GateMode.NORMAL, time_in_mode=0.0)
+
+
+def step_tilt_gate(state: TiltGateState, psi_hat: float, dt: float, tilt_gate_p: TiltGateParams) -> TiltGateState:
+    """Advance the tilt-threshold baseline gate by one control-loop sample
+    (CLAUDE.md section 12: "mode switches on |psi| thresholds only").
+    Unlike step_gate's windowed epsilon_k, this acts directly on the
+    KF-estimated |psi| each tick -- there is no window, so no
+    window-fullness gate is needed (contrast with step_gate's
+    `window_full` check).
+    """
+    abs_psi = abs(psi_hat)
+    time_in_mode = state.time_in_mode + dt
+    can_transition = time_in_mode >= tilt_gate_p.T_dwell
+
+    new_mode = state.mode
+    if can_transition:
+        if state.mode is GateMode.NORMAL:
+            if abs_psi > tilt_gate_p.psi2:
+                new_mode = GateMode.HALT
+            elif abs_psi > tilt_gate_p.psi1:
+                new_mode = GateMode.CAUTIOUS
+        elif state.mode is GateMode.CAUTIOUS:
+            if abs_psi > tilt_gate_p.psi2:
+                new_mode = GateMode.HALT
+            elif abs_psi < tilt_gate_p.psi1_exit:
+                new_mode = GateMode.NORMAL
+        elif state.mode is GateMode.HALT:
+            if abs_psi < tilt_gate_p.psi2_exit:
+                new_mode = GateMode.CAUTIOUS
+
+    if new_mode != state.mode:
+        time_in_mode = 0.0
+
+    return TiltGateState(mode=new_mode, time_in_mode=time_in_mode)

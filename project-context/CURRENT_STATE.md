@@ -1,12 +1,13 @@
 # Current State — Echo Balancer
 
-Last verified: 2026-09-21, against branch `master` at commit `96f914b`
-(`git log --oneline -1`). **Re-verify against `git log` if this looks stale —
+Last verified: 2026-09-22, against branch `step6-run-batch-metrics` (worktree
+`.worktrees/step6-run-batch-metrics`) at commit `0d29d83` plus this session's
+`project-context/` update. **Re-verify against `git log` if this looks stale —
 this file is a snapshot, not a live view.**
 
-## What currently works (verified: 84/84 tests passing, `uv run pytest -q`)
+## What currently works (verified: 122/122 tests passing, `uv run pytest -q`)
 
-Build order per `CLAUDE.md` §14 — steps 1-5 complete:
+Build order per `CLAUDE.md` §14 — steps 1-6 complete:
 
 1. **Plant model** (`sim/params.py`, `sim/plant.py`, `sim/integrate.py`)
    - Energy conservation to <0.1% over 5s with `f_m=0` and `Kb=0` (back-EMF zeroed
@@ -75,22 +76,97 @@ Build order per `CLAUDE.md` §14 — steps 1-5 complete:
      state (uses true state directly, matching step 2's recovery-test
      precedent) — a documented, temporary simplification pending `run.py`.
 
-Full test run (this session): `84 passed` (~40-55s depending on machine — the
-new wall-following closed-loop test adds ~2.5s for its 15-simulated-second run
-at 1kHz/200Hz/20Hz).
+6. **`sim/run.py`, `experiments/run_batch.py`, `analysis/metrics.py`** (step 6) — **Milestone 2 achieved**
+   - `sim/run.py::run_episode(config, seed) -> pd.DataFrame`: the general-purpose
+     closed-loop episode runner (`CLAUDE.md` §4), unifying the three overlapping
+     test-only closed-loop harnesses that had accumulated across
+     `tests/test_estimator.py`, `tests/test_gate.py`, and `tests/test_wall_following.py`
+     into one implementation — resolving the "should these be unified" question
+     [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md) previously left open. `ControllerType`
+     (`NAIVE`/`TILT_THRESHOLD`/`NIS_GATE`) and `EpisodeConfig`
+     (`controller`, `T`, `wall_following`, `x0_psi_deg`, `disturbance`,
+     `disturbance_name`) select the episode. **Does not** unify onto one shared
+     control law: `wall_following=False` episodes always use
+     `design_lqr_balance` fed by the KF estimate (byte-for-byte the already-
+     calibrated step 3/4 algorithm — `GateParams` needs no recalibration);
+     `wall_following=True` episodes use `design_lqr_speed_servo` fed by the
+     TRUE plant state (matching step 5's precedent), with a mode-scaled speed
+     reference (NORMAL: full `corridor_theta_dot_ref_nominal`; CAUTIOUS:
+     x0.4 and the new cautious gain `K5_cautious`; HALT: `0.0`, nominal gain)
+     — see [DECISIONS.md](DECISIONS.md) for why a single shared control law
+     was tried and rejected (it silently breaks push-disturbance detection).
+     Both `step_gate` (NIS) and the new `step_tilt_gate` (tilt-threshold
+     baseline) always run every tick regardless of which one drives `mode`,
+     so all three controllers are directly comparable on identical
+     seeds/disturbances. Implements `CLAUDE.md` §5's fall condition
+     (`|psi| > 45°` truncates the episode, motors off, `fallen=True`) —
+     verified this is not optional plumbing (see below). Voltage clipping is
+     applied per-motor (`v_l`, `v_r` independently), a deliberate, tested
+     divergence from the old test harnesses' clip-then-split approach, needed
+     for wall-following's differential yaw drive.
+   - `sim/gate.py`'s `TiltGateState`/`initial_tilt_gate_state`/`step_tilt_gate`:
+     the CLAUDE.md §12 "plain safety-filter baseline" — mode switches on
+     `|kf.x_hat[1]|` (KF-estimated psi, never true psi) thresholds only, no
+     windowed statistic. Calibrated (`TiltGateParams`, `sim/params.py`) to
+     have zero false trips over a 10-seed nominal sweep, and to detect
+     `gyro_bias_fault`/`battery_droop`/`payload_shift` but — by design, not
+     miscalibration — to miss `push`/`surface_change`/`accel_noise_fault`
+     (CLAUDE.md §12 frames this contrast as the point of the comparison).
+   - `sim/params.py` additions: `RunParams` (`dt_plant`, `dt_control`,
+     `fall_psi_threshold`, `cautious_speed_scale`,
+     `corridor_theta_dot_ref_nominal=0.3` — deliberately not
+     `tests/test_wall_following.py`'s `2.0`, see [DECISIONS.md](DECISIONS.md)),
+     `TiltGateParams`, and `default_speed_servo_params_cautious()` (all five
+     `SpeedServoParams` Q weights divided by 5, verified stable).
+   - `experiments/run_batch.py`: runs all three controllers across 10 seeds
+     and 7 scenarios (nominal + 6 `CLAUDE.md` §8 disturbances) for the
+     balance-only architecture, plus a separate nominal-only corridor batch
+     (for the Progress metric), via `joblib.Parallel`, writing
+     `steps_*.parquet`/`episodes_*.parquet` under `experiments/results/`
+     (gitignored, regenerable). Workers receive the resolved scenario tuple
+     as an explicit parameter rather than looking it up from the module-level
+     `DISTURBANCE_SCENARIOS` dict — required because `joblib`'s `loky` backend
+     spawns fresh worker processes on this Windows machine (`spawn` is the
+     only available start method), so a worker-side lookup would silently
+     read on-disk module state instead of a parent-process-patched value
+     (caught by a test failing with 12000 rows instead of 200) — see
+     [DECISIONS.md](DECISIONS.md).
+   - `analysis/metrics.py`: `fall_rate`, `false_fallback_fraction`,
+     `missed_fallback`, `detection_delay`, `progress` — five of `CLAUDE.md`
+     §12's six metrics (threshold-sensitivity sweeps are deferred to
+     `quantum/qubo.py`'s grid search, step 7). Operates on the
+     `(steps_df, episodes_df)` pair `run_batch.py` produces; tested against
+     small hand-built synthetic DataFrames, no full simulation needed.
+   - **Real findings from this step, worth carrying into any write-up, not bugs
+     to chase:** sustained forward motion with active yaw correction
+     significantly inflates the windowed NIS statistic (confirms a suspicion
+     `OPEN_PROBLEMS.md` had flagged as untested) — `run.py`'s corridor default
+     speed (`0.3` rad/s) was chosen specifically to stay safe under this
+     effect, well below `tests/test_wall_following.py`'s own `2.0` rad/s demo
+     speed; push-disturbance detection, already thin in the balance-only
+     architecture (3.5% margin over `tau1`), does not survive the switch to
+     `design_lqr_speed_servo` in corridor mode at all (a known, expected miss,
+     not a regression); and HALT mode's transient overshoots the NORMAL-mode
+     cruise speed before settling, because `TiltGateParams.T_dwell` is much
+     shorter than the pitch-recovery pole's time constant — see
+     [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md) for the full detail on all three.
+     **A fourth finding, discovered later while verifying the `progress()`
+     empty-DataFrame fix against a real end-to-end batch run (not the tests'
+     synthetic DataFrames):** the real 10-seed nominal corridor batch shows a
+     ~20% fall rate independent of gate choice (`naive`/`nis_gate` both 0.2,
+     same falling seeds, near-identical fall times) plus an additional
+     mode-switching-correlated fall rate specific to `tilt_threshold` (0.5).
+     `corridor_theta_dot_ref_nominal=0.3`'s "safe" designation (Decision
+     below) was only ever validated against gate-triggering at `seed=42`, not
+     fall rate across a real seed population — see
+     [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md) and [DECISIONS.md](DECISIONS.md).
 
-## What does not exist yet (build order steps 6-8, not started)
+Full test run (this session): `126 passed` (several minutes — step 6 adds two
+new 60s closed-loop corridor tests plus a 10-seed x 7-scenario x 3-controller
+batch smoke test on top of the existing steps 1-5 suite).
 
-- `sim/run.py` — the general-purpose closed-loop episode runner. Note: the
-  §11 NIS test's closed loop (`tests/test_estimator.py::_run_nominal_closed_loop`),
-  the gate tests' closed loop (`tests/test_gate.py::_closed_loop_with_gate`),
-  and now the wall-following closed loop (`tests/test_wall_following.py`) are
-  THREE test-only harnesses with overlapping plumbing, explicitly *not*
-  a preview of `run.py`'s eventual design — see
-  [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md) for the "should these be unified" question.
-  **This is the next step.**
-- `experiments/run_batch.py`, `analysis/metrics.py`, `analysis/plots.py`,
-  `analysis/animate.py` — batch evaluation and reporting (Milestone 2).
+## What does not exist yet (build order steps 7-8, not started)
+
 - `quantum/qubo.py` — QUBO formulation + grid vs. `GroverOptimizer` comparison.
   `qiskit`/`qiskit-optimization` are not yet in `pyproject.toml` (deliberately —
   see [DECISIONS.md](DECISIONS.md)).
@@ -106,70 +182,114 @@ at 1kHz/200Hz/20Hz).
 
 - **`sim/params.py`** currently defines: `PlantParams`, `LQRBalanceParams`,
   `SensorParams`, `EstimatorParams`, `GateParams`, `DisturbanceParams`,
-  `CorridorParams`, `SpeedServoParams`, `YawControlParams`, `WallFollowParams`
-  — each with a `default_*()` factory.
-- **`sim/control.py`** now has five public functions: `design_lqr_balance`
-  (step 2), `design_lqr_speed_servo` (step 5, separate from balance),
-  `yaw_p_control`, `wall_following_control`, `front_threshold_speed_adjust`
-  (step 5).
+  `CorridorParams`, `SpeedServoParams`, `YawControlParams`, `WallFollowParams`,
+  and (step 6) `RunParams`, `TiltGateParams` — each with a `default_*()`
+  factory, plus `default_speed_servo_params_cautious()` alongside
+  `default_speed_servo_params()`.
+- **`sim/control.py`** still has the same five public functions from step 5:
+  `design_lqr_balance` (step 2), `design_lqr_speed_servo` (step 5, separate
+  from balance), `yaw_p_control`, `wall_following_control`,
+  `front_threshold_speed_adjust` — step 6 did not modify `control.py`, only
+  composed these functions inside `sim/run.py`.
+- **`sim/gate.py`** (step 6 addition): `TiltGateState`,
+  `initial_tilt_gate_state`, `step_tilt_gate` — the tilt-threshold baseline,
+  alongside the existing NIS-based `GateState`/`step_gate` (step 4, unmodified).
+- **`sim/run.py`** (new, step 6): `ControllerType`, `EpisodeConfig`,
+  `run_episode(config, seed) -> pd.DataFrame`. See "What currently works"
+  above for the full design; short version — one function drives the whole
+  plant/sensor/estimator/gate/control stack for one episode and returns a
+  per-control-tick DataFrame with columns `t, theta, psi, phi, theta_dot,
+  psi_dot, phi_dot, pos_x, pos_y, mode, nis, epsilon, front_dist, right_dist,
+  v_l, v_r, fallen` (`pos_x`/`pos_y`/`front_dist`/`right_dist` are `NaN` for
+  `wall_following=False` episodes).
 - **`EstimatorParams` defaults** (`Q_theta=Q_psi=1e-8`, `Q_theta_dot=Q_psi_dot=1e-6`,
   `P0_*=1e-4` except `P0_bg=1e-6`) are empirically tuned, not derived from a spec
   target — see [DECISIONS.md](DECISIONS.md) for the tuning story and
-  [FAILED_APPROACHES.md](FAILED_APPROACHES.md) before changing them.
+  [FAILED_APPROACHES.md](FAILED_APPROACHES.md) before changing them. Step 6
+  confirmed (didn't need to retune) that these values hold up unmodified for
+  the balance-only path; the corridor path's false-fallback-at-speed finding
+  is a *separate*, newly-confirmed gap in the same params (see
+  [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md)), not evidence these defaults are wrong
+  for what they were originally tuned against.
 - **`GateParams` defaults** (`N=200, tau1=1300, tau2=1800, tau1_exit=1040,
   tau2_exit=1300, T_dwell=0.5`) are likewise empirically calibrated — same caveat.
+- **`TiltGateParams` defaults** (`psi1=0.0087, psi2=0.0175, psi1_exit=0.006,
+  psi2_exit=0.012, T_dwell=0.5`) are step 6's own empirical calibration for the
+  baseline gate — see [DECISIONS.md](DECISIONS.md)'s "Design decision 4."
 - **`DisturbanceParams`** bundles genuine disturbance-profile values with two
   test-harness-only setup values (`battery_droop_companion_push_magnitude`,
   `payload_shift_test_psi0_deg`) needed to make those two disturbances observable
   at all — see `sim/params.py`'s own docstring before using these in `experiments/`.
-- Test suite: 12 test modules under `tests/`, one per `sim/` module (`test_params`,
-  `test_plant`, `test_integrate`, `test_linearize`, `test_control`, `test_sensors`,
-  `test_estimator`, `test_gate`, `test_disturbances`, `test_world`) plus
-  `test_wall_following.py` (integration-only, no matching `sim/` module). No
-  `test_run.py` yet.
-- `tests/test_gate.py` is now 12 tests / ~300+ lines spanning fast unit tests
-  (toy `N=3` state-machine logic) and slow closed-loop integration tests (60s +
-  six 20s simulations, ~90s total) — flagged as a candidate for splitting into
-  two files if it grows further (not urgent).
+  Step 6's `experiments/run_batch.py` fires the battery-droop companion push at
+  `battery_droop_onset + battery_droop_duration` (after the ramp completes), not
+  at the droop's own onset — see `FAILED_APPROACHES.md`'s existing entry on why.
+- Test suite: 15 test modules under `tests/` — the 12 from steps 1-5
+  (`test_params`, `test_plant`, `test_integrate`, `test_linearize`,
+  `test_control`, `test_sensors`, `test_estimator`, `test_gate`,
+  `test_disturbances`, `test_world`, `test_wall_following`) plus step 6's
+  three new modules: `test_run.py` (14 tests: balance-only + corridor
+  `run_episode` behavior, reproducibility, fall condition), `test_metrics.py`
+  (8 tests: `analysis/metrics.py` against small synthetic DataFrames),
+  `test_run_batch.py` (3 tests: `experiments/run_batch.py` wiring/schema
+  smoke tests plus the multi-episode-concat regression test added after the
+  worker-scenario-lookup bug).
+- `tests/test_gate.py` is still ~12 tests spanning fast unit tests (toy `N=3`
+  state-machine logic) and slow closed-loop integration tests — unchanged by
+  step 6 (the new tilt-gate unit tests live alongside it, fast, no closed loop).
 
 ## Current configuration
 
 - Python 3.12.8 (venv), managed by `uv` (`uv.lock` checked in).
-- `pyproject.toml` deps: `numpy`, `scipy`; dev: `pytest`. `pythonpath=["."]`,
+- `pyproject.toml` deps (step 6 added `pandas`, `pyarrow`, `joblib`): `numpy`,
+  `scipy`, `pandas`, `pyarrow`, `joblib`; dev: `pytest`. `pythonpath=["."]`,
   `testpaths=["tests"]`.
-- Git remote: `https://github.com/ShreeniG99/Echo-Balancer.git`, branch `master`.
+- Git remote: `https://github.com/ShreeniG99/Echo-Balancer.git`. This session's
+  work happened on branch `step6-run-batch-metrics` in the worktree
+  `.worktrees/step6-run-batch-metrics` (per
+  `docs/superpowers/plans/2026-09-22-run-batch-metrics-step6.md`'s own
+  isolation instructions), not directly on `master`.
 - `nxtway_gs/` and `license.txt` are gitignored (third-party reference material,
   not redistributed). `graphify-out/cost.json` and `graphify-out/cache/` are also
-  gitignored (per-machine, regenerable).
+  gitignored (per-machine, regenerable). Step 6 added `experiments/results/`
+  to `.gitignore` (batch-run Parquet outputs, regenerable, potentially large).
 
 ## Current objective
 
-Per `CLAUDE.md` §14, the next build-order step is **step 6**: `sim/run.py` →
-`experiments/run_batch.py` → `analysis/metrics.py` (Milestone 2: "metrics table
-for all three controllers" — naive, tilt-threshold gate, NIS gate).
+Per `CLAUDE.md` §14, Milestone 2 ("metrics table for all three controllers")
+is now achieved. The next build-order step is **step 7**: `quantum/qubo.py`
+(QUBO formulation of gate-threshold selection, grid search vs.
+`GroverOptimizer`, Milestone 3) — still blocked on verifying
+`qiskit`/`qiskit-optimization` imports first, per the existing
+[DECISIONS.md](DECISIONS.md) entry ("not yet in `pyproject.toml`, deliberately").
+Step 8 (`analysis/plots.py`, `analysis/animate.py`) is the alternative next
+step if quantum work is deferred further.
 
 ## Immediate next steps
 
-1. Design `sim/run.py`: one closed-loop episode → DataFrame, per `CLAUDE.md` §4.
-   Consider unifying the three overlapping test-only closed-loop harnesses that
-   now exist (`test_estimator.py`, `test_gate.py`, `test_wall_following.py`)
-   rather than writing a fourth independent implementation — see
-   [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).
-2. Implement the three controllers to compare (§12): naive (always NORMAL),
-   tilt-threshold gate (|ψ| thresholds only), NIS gate (already built, steps
-   3-4). Decide whether/how the step-5 wall-following stack (speed servo, yaw,
-   wall-following) integrates into `run.py`'s episodes, or whether `run.py`'s
-   first cut is balance-only-in-a-corridor and wall-following comes later.
-3. `experiments/run_batch.py` + `analysis/metrics.py`: fall rate, false-fallback,
-   missed-fallback, detection delay, progress — per §12's metrics list.
+1. If continuing toward Milestone 3: verify `qiskit`/`qiskit-optimization`
+   import cleanly and `GroverOptimizer` is usable (CLAUDE.md §3's explicit
+   precondition) *before* pinning versions in `pyproject.toml` or writing any
+   `quantum/qubo.py` code.
+2. `quantum/qubo.py`: discretize `tau1`/`tau2`/`N`/`T_dwell` candidates,
+   re-simulate the evaluation set per candidate (log replay is invalid —
+   CLAUDE.md §13), build the QUBO with infeasibility penalties
+   (`tau1 >= tau2`), solve via exhaustive search and `GroverOptimizer` (Aer
+   simulator), report oracle calls/wall-clock/qubit count honestly either way
+   — no speedup claim to defend.
+3. Alternatively/in parallel: `analysis/plots.py`, `analysis/animate.py`
+   (step 8) — 2D side + top view, background color keyed to gate mode, using
+   `experiments/run_batch.py`'s Parquet outputs as the data source.
 
 ## Uncommitted / unusual repo state as of this session
 
-- `research/echo_balancer_research.pdf` and `research/"echo_balancer_detailed (1).pdf"`
-  remain untracked and ungitignored — purpose/provenance still unconfirmed with
-  the user (flagged in [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md), not assumed). This has
-  been true since 2026-09-20/21 and hasn't blocked anything; revisit only if the
-  user raises it.
-- Everything else is now committed (as of `96f914b`): `.claude/`, `.graphifyignore`,
-  `graphify-out/`, `project-context/`, and all five steps' plan docs (step 5's
-  plan doc was briefly untracked mid-step, fixed in the closing commit).
+- This session ran entirely inside the `.worktrees/step6-run-batch-metrics`
+  git worktree on branch `step6-run-batch-metrics`, not in the main checkout —
+  the main checkout's `research/` PDF situation (untracked, ungitignored,
+  purpose unconfirmed — see [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md)) does not
+  exist in this worktree at all and was not touched or re-investigated here.
+- As of this update, `project-context/*.md` are the only modified files in
+  this worktree; `graphify-out/` is refreshed and staged alongside them. All
+  seven of step 6's implementation commits (Tasks 1-7: deps, params, tilt
+  gate, `run.py` balance-only path, `run.py` corridor path, `metrics.py`,
+  `run_batch.py`) plus this task's docs commit are the full history added on
+  top of `master`'s `96f914b` in this worktree/branch.

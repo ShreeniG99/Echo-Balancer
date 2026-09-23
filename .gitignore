@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 *.egg-info/
+.worktrees/
 
 # Third-party reference material (NXTway-GS File Exchange #19147), kept
 # locally for cross-checking sim/plant.py against the source, not redistributed.
@@ -13,3 +14,5 @@ __pycache__/
 # but per-machine LLM cost tracking and local query cache are not.
 /graphify-out/cost.json
 /graphify-out/cache/
+
+experiments/results/

@@ -156,3 +156,30 @@ to work, for the stated reasons.
   (state-feedback) yaw loop would be required first.
 - **Source:** `docs/superpowers/plans/2026-09-21-world-wallfollowing-step5.md`,
   "Design decision: yaw control is proportional-only."
+
+---
+
+### Failed: using `design_lqr_speed_servo` (instead of `design_lqr_balance`) as a single shared control law for every `sim/run.py` episode
+- **Approach tried:** Feed the KF estimate (or, separately, the true state) into `design_lqr_speed_servo` with `theta_dot_ref=0` for balance-in-place episodes, on the reasoning that a constant zero reference reduces exactly to the already-verified nominal design.
+- **What happened:** Nominal-run epsilon behavior was fine in every variant (comparable to the existing `design_lqr_balance` range), but push-disturbance detection broke in *all four* tested variants (KF-fed/true-state-fed x `theta_dot_ref` 0/nonzero): max epsilon in the push-response window ranged 1111-1187, all below `tau1=1300`, versus `design_lqr_balance`'s own (already-thin) 1344.87.
+- **Why abandoned:** `GateParams.tau1`/`tau2` were calibrated specifically against `design_lqr_balance`'s closed-loop response; the speed-servo gain's slightly faster damping of the psi_dot-kick response is enough to drop the windowed-sum epsilon peak below `tau1`, and there was no clean way to keep both control-law unification and the existing calibration.
+- **What should not be repeated:** Don't unify `sim/run.py`'s control law onto `design_lqr_speed_servo` "for cleanliness" without re-verifying push/battery-droop detection against the new gain — the margin is thin enough that even a modest gain change tips it.
+- **Source:** `docs/superpowers/plans/2026-09-22-run-batch-metrics-step6.md`, "Design decision 1."
+
+---
+
+### Failed: `tests/test_wall_following.py`'s `theta_dot_ref_nominal=2.0` as the corridor evaluation speed
+- **Approach tried:** Reuse the existing wall-following demo's forward speed (`2.0` rad/s) for `sim/run.py`'s corridor episodes, now with the KF/gate actually observing the loop.
+- **What happened:** A nominal (undisturbed) 60s run at `2.0` rad/s reaches `max_epsilon=1605.56`, exceeding `tau1=1300` and spuriously leaving NORMAL — a false-fallback purely from sustained forward motion plus active yaw correction, not any injected disturbance.
+- **Why abandoned:** `2.0` rad/s was originally chosen in step 5 purely for a fast kinematic demo with no KF/gate in that loop at all; it was never validated against the gate's calibration. `0.3` rad/s (swept alongside `0.1/0.2/0.5`) keeps `max_epsilon` at `909.13`, comparable to the balance-only nominal range.
+- **What should not be repeated:** Don't assume a control/kinematics-only demo's chosen speed transfers to a configuration that also includes the estimator/gate — sustained nonzero `theta_dot` was never exercised against `GateParams` before this step.
+- **Source:** same plan doc, "Design decision 3."
+
+---
+
+### Failed (as a test design, not an implementation): assuming HALT mode makes `theta_dot` settle near zero within one `T_dwell` window
+- **Approach tried:** Assert `theta_dot` stays near zero while `mode == "HALT"` in a wall-following episode, on the intuitive reading of CLAUDE.md section 10's "keep balancing in place."
+- **What happened:** When HALT is triggered by a large initial-tilt recovery (e.g. `x0_psi_deg=15`), `theta_dot` does NOT settle near zero during the HALT window — it overshoots to roughly ±0.85 rad/s, *larger* in magnitude than the 0.3 rad/s NORMAL cruise speed. Root cause: `TiltGateParams.T_dwell=0.5s` is far shorter than the pitch-recovery pole's time constant (~2.5-4s), so HALT engages mid-recovery-transient, and freezing `theta_dot_ref=0` (a reference step) is itself a disturbance the LQR must react to. Verified this wasn't a red herring by deliberately reintroducing two plausible bugs (`theta_dot_ref=base_ref` instead of `0.0`; `K5=K5_cautious` instead of `K5_nominal`) — both produced *smaller* peak `|theta_dot|` (~0.30, ~0.56) than the correct code (~0.85), confirming a naive "near zero" bound would be non-discriminating (would reject correct code while being agnostic to at least these two specific bugs).
+- **Why abandoned:** The near-zero assertion doesn't hold and isn't even the right thing to check; used instead: HALT is reached, no fall, no non-finite state, `theta_dot` stays boundedly finite, and mode eventually returns to NORMAL (evidence of stability, not the specific magnitude of the transient).
+- **What should not be repeated:** Don't assume a gate mode's *steady-state* semantic description ("keep balancing in place") describes its behavior during the *transient* right after a mode transition, especially when the dwell time is short relative to the plant's own recovery time constants. If `T_dwell` or the pitch-recovery pole ever change, re-verify this finding — it's about their relative timescales, not a fixed property of either alone.
+- **Source:** `docs/superpowers/plans/2026-09-22-run-batch-metrics-step6.md`, Task 5's code review discussion (`tests/test_run.py::test_halt_mode_zeroes_corridor_speed_reference`).
