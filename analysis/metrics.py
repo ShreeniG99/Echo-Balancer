@@ -39,7 +39,7 @@ def missed_fallback(steps_df: pd.DataFrame, episodes_df: pd.DataFrame) -> pd.Dat
         before = ep_steps[ep_steps["t"] <= fall_t - 0.5]
         was_normal = before.empty or before["mode"].iloc[-1] == "NORMAL"
         rows.append({"episode_id": ep["episode_id"], "controller": ep["controller"], "missed_fallback": bool(was_normal)})
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=["episode_id", "controller", "missed_fallback"])
 
 
 def detection_delay(steps_df: pd.DataFrame, episodes_df: pd.DataFrame) -> pd.DataFrame:
@@ -56,7 +56,7 @@ def detection_delay(steps_df: pd.DataFrame, episodes_df: pd.DataFrame) -> pd.Dat
             "episode_id": ep["episode_id"], "controller": ep["controller"],
             "scenario": ep["scenario"], "detection_delay_s": delay,
         })
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=["episode_id", "controller", "scenario", "detection_delay_s"])
 
 
 def progress(steps_df: pd.DataFrame, episodes_df: pd.DataFrame) -> pd.DataFrame:

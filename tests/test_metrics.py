@@ -8,6 +8,7 @@ from analysis.metrics import (
     false_fallback_fraction,
     missed_fallback,
     progress,
+    summarize_batch,
 )
 
 
@@ -128,3 +129,79 @@ def test_missed_fallback_only_includes_fallen_episodes():
     result = missed_fallback(steps_df, episodes_df)
 
     assert set(result["episode_id"]) == {"e1"}
+
+
+def test_missed_fallback_empty_but_correctly_columned_when_no_fallen_episodes():
+    # No episode fell -- the loop body never runs. Regression test: this used
+    # to return pd.DataFrame([]), a zero-column frame that crashes any
+    # downstream .groupby("controller").
+    episodes_df = pd.DataFrame([
+        _episode("e1", "nis_gate", "nominal", fell=False),
+        _episode("e2", "naive", "nominal", fell=False),
+    ])
+    steps_df = pd.DataFrame([
+        _step("e1", 0.0, "NORMAL"),
+        _step("e2", 0.0, "NORMAL"),
+    ])
+
+    result = missed_fallback(steps_df, episodes_df)
+
+    assert list(result.columns) == ["episode_id", "controller", "missed_fallback"]
+    assert len(result) == 0
+
+
+def test_detection_delay_empty_but_correctly_columned_when_no_disturbance_onset():
+    # Every episode is the "nominal" scenario (disturbance_onset is NaN for
+    # all of them) -- the loop body never runs. Regression test: this used
+    # to return pd.DataFrame([]), a zero-column frame that crashes any
+    # downstream .groupby("controller").
+    episodes_df = pd.DataFrame([
+        _episode("e1", "nis_gate", "nominal", fell=False),
+        _episode("e2", "naive", "nominal", fell=False),
+    ])
+    steps_df = pd.DataFrame([
+        _step("e1", 0.0, "NORMAL"),
+        _step("e2", 0.0, "NORMAL"),
+    ])
+
+    result = detection_delay(steps_df, episodes_df)
+
+    assert list(result.columns) == ["episode_id", "controller", "scenario", "detection_delay_s"]
+    assert len(result) == 0
+
+
+def test_summarize_batch_handles_corridor_nominal_only_shape():
+    # Reproduces experiments/run_batch.py's own
+    # run_batch(wall_following=True, scenario_names=["nominal"]) shape: every
+    # episode is the nominal scenario (zero disturbed episodes, so
+    # detection_delay is empty) and, in this particular batch, zero fallen
+    # episodes too (so missed_fallback would also be empty). Before the fix,
+    # summarize_batch crashed with KeyError: 'controller' because
+    # detection_delay(...).groupby("controller") ran on a zero-column frame.
+    episodes_df = pd.DataFrame([
+        _episode("e1", "naive", "nominal", fell=False),
+        _episode("e2", "nis_gate", "nominal", fell=False),
+        _episode("e3", "tilt_threshold", "nominal", fell=False),
+    ])
+    steps_df = pd.DataFrame([
+        _step("e1", 0.0, "NORMAL", theta=0.0), _step("e1", 1.0, "NORMAL", theta=1.0),
+        _step("e2", 0.0, "NORMAL", theta=0.0), _step("e2", 1.0, "CAUTIOUS", theta=0.8),
+        _step("e3", 0.0, "NORMAL", theta=0.0), _step("e3", 1.0, "NORMAL", theta=1.2),
+    ])
+
+    result = summarize_batch(steps_df, episodes_df)  # must not raise
+
+    assert (result["fall_rate"] == 0.0).all()
+    assert result.loc["naive", "false_fallback_fraction"] == pytest.approx(0.0)
+    assert result.loc["nis_gate", "false_fallback_fraction"] == pytest.approx(0.5)
+    assert result.loc["tilt_threshold", "false_fallback_fraction"] == pytest.approx(0.0)
+    # No episode had a known disturbance onset, so there is nothing to
+    # average -- every controller's mean detection delay is NaN, not a
+    # missing row or a crash.
+    assert result["mean_detection_delay_s"].isna().all()
+    # mean_progress_m is still computable from progress() alone.
+    from sim.params import default_plant_params
+    R = default_plant_params().R
+    assert result.loc["naive", "mean_progress_m"] == pytest.approx(R * 1.0)
+    assert result.loc["nis_gate", "mean_progress_m"] == pytest.approx(R * 0.8)
+    assert result.loc["tilt_threshold", "mean_progress_m"] == pytest.approx(R * 1.2)
