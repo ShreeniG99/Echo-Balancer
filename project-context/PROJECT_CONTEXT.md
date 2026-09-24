@@ -32,17 +32,21 @@ sim/linearize.py       # analytic A,B at upright equilibrium + numeric check
 sim/sensors.py         # gyro, accelerometer, encoders, ultrasonic
 sim/control.py         # LQR balance, speed/yaw servo, wall-following
 sim/estimator.py       # Kalman filter + NIS
-sim/gate.py            # Normal/Cautious/Halt state machine            [NOT YET BUILT]
-sim/disturbances.py    # scheduled disturbance profiles                [NOT YET BUILT]
-sim/world.py           # 2D corridor geometry + ray casting            [NOT YET BUILT]
-sim/run.py             # one closed-loop episode -> DataFrame          [NOT YET BUILT]
-experiments/run_batch.py                                               [NOT YET BUILT]
-analysis/metrics.py, analysis/plots.py, analysis/animate.py            [NOT YET BUILT]
-quantum/qubo.py        # cost table -> QUBO; grid vs GroverOptimizer   [NOT YET BUILT]
+sim/gate.py            # Normal/Cautious/Halt state machine
+sim/disturbances.py    # scheduled disturbance profiles
+sim/world.py           # 2D corridor geometry + ray casting
+sim/run.py             # one closed-loop episode -> DataFrame
+experiments/run_batch.py  # batch evaluation across the 3 controllers x 7 scenarios x N seeds
+analysis/metrics.py    # fall rate / false-fallback / missed-fallback / detection delay / progress
+analysis/animate.py    # 3D scene render (PyVista/VTK, off-screen) of a logged episode -> MP4
+analysis/plots.py                                                     [NOT YET BUILT]
+quantum/qubo.py        # cost table -> quadratic surrogate -> grid vs GroverOptimizer
 tests/                 # one test module per sim/ module, required before a module is "done"
 ```
 
-See [CURRENT_STATE.md](CURRENT_STATE.md) for exactly which of these exist today.
+**All build-order steps (`CLAUDE.md` §14) are complete except `analysis/plots.py`.**
+See [CURRENT_STATE.md](CURRENT_STATE.md) for exact detail and the real
+cross-controller/Grover results.
 
 ## Key components (built so far)
 
@@ -55,28 +59,57 @@ See [CURRENT_STATE.md](CURRENT_STATE.md) for exactly which of these exist today.
 - **`sim/linearize.py`** — analytic Jacobian `linearize(p)` (full 6-state) and
   `linearize_planar(p)` (reduced 4-state `[θ,ψ,θ̇,ψ̇]`), both verified against a
   numeric finite-difference Jacobian.
-- **`sim/control.py`** — `design_lqr_balance(p, lqr_p)`: continuous-ARE LQR gain on
-  the planar model. Speed servo, yaw PD, and wall-following are spec'd (§9) but not
-  yet implemented — see below.
-- **`sim/sensors.py`** — `gyro`, `accelerometer`, `encoder` pure noise models.
-  Ultrasonic is deferred to `sim/world.py` (needs corridor ray-casting).
+- **`sim/control.py`** — `design_lqr_balance` (balance-only 4-state LQR),
+  `design_lqr_speed_servo` (separate 5-state integral-augmented LQR for forward-
+  speed tracking), `yaw_p_control` (proportional-only, permanently — see
+  DECISIONS.md), `wall_following_control`, `front_threshold_speed_adjust`.
+- **`sim/sensors.py`** — `gyro`, `accelerometer`, `encoder`, `ultrasonic`
+  (HC-SR04 model, consumes `sim.world.cast_ray`'s output).
 - **`sim/estimator.py`** — 5-state `[θ,ψ,θ̇,ψ̇,b_g]` discrete KF (`discretize`,
   `predict`, `update`) with NIS computed in `update`.
+- **`sim/gate.py`** — `step_gate` (windowed-NIS Normal/Cautious/Halt state
+  machine) and `step_tilt_gate` (the tilt-threshold baseline controller,
+  CLAUDE.md §12).
+- **`sim/world.py`** — `cast_ray` (two-infinite-parallel-walls corridor
+  geometry), `pose_velocity` (unicycle kinematics).
+- **`sim/run.py`** — `run_episode(config, seed) -> DataFrame`, the one real
+  closed-loop implementation, parameterized by `ControllerKind`
+  (NAIVE/TILT_GATE/NIS_GATE).
+- **`experiments/run_batch.py` + `analysis/metrics.py`** — the Milestone 2
+  cross-controller comparison. Real result: NIS gate has zero missed
+  detections across 60 disturbance episodes vs. tilt-threshold's 50% miss
+  rate; fall rate 42.9%→28.6% (naive→NIS gate).
+- **`quantum/qubo.py`** — Milestone 3. Fits a quadratic surrogate to the true
+  64-candidate cost table (GroverOptimizer can't take an arbitrary black-box
+  objective), runs GroverOptimizer multiple trials (it's probabilistic, not a
+  single-shot guarantee). Real result: no speedup (by design), and the
+  surrogate's true optimum margin is only ~0.12% of its range — a genuine
+  value-qubit-resolution limit, not a bug.
+- **`analysis/animate.py`** — 3D scene render (PyVista/VTK, off-screen) of any
+  logged episode. **Scope change from the original 2D side/top-view plan,
+  user-approved** — see DECISIONS.md. Self-manages a virtual display
+  (`_ensure_display`) since this container has no GPU/EGL/OSMesa.
 
 ## Technologies
 
-Python ≥3.11 (dev venv currently 3.12.8), `uv` for env/deps, `numpy`, `scipy`
-(`solve_continuous_are`, `expm`, `chi2`), `pytest`. Not yet added:
-`python-control`, `pandas`+`pyarrow`, `joblib`, `matplotlib`, `qiskit` +
-`qiskit-optimization` (deliberately deferred — see
-[DECISIONS.md](DECISIONS.md)).
+Python ≥3.11, `uv` for env/deps, `numpy`, `scipy` (`solve_continuous_are`,
+`expm`, `chi2`), `pandas`+`pyarrow` (Parquet), `joblib` (batch parallelism),
+`pyvista`+`vtk`+`imageio`/`imageio-ffmpeg` (3D animation, see the scope-change
+note below), `qiskit`==2.5.2 + `qiskit-optimization`==0.7.0 + `qiskit-aer`==0.17.2
+(verified `GroverOptimizer` import before writing quantum code), `pytest`.
+Not yet added as a direct dependency: `python-control` (nothing imports it —
+`scipy`'s `solve_continuous_are` has covered every LQR design so far),
+`matplotlib` (only present transitively via `pyvista`; would need adding
+directly if `analysis/plots.py` gets built).
 
 ## Project-specific terminology
 
 - **NIS** — Normalized Innovation Squared, `ν'S⁻¹ν`, the KF's own self-consistency
   statistic; ~χ²(3) when the filter's model matches reality (3 = measurement dim).
-- **ε_k** — the *windowed* statistic, sum of the last N samples of NIS, ~χ²(3N).
-  The gate switches on ε_k, not raw NIS. (Not yet implemented — `sim/gate.py`.)
+- **ε_k** — the *windowed* statistic, sum of the last N samples of NIS, ~χ²(3N)
+  in theory (empirically, the tail is much heavier than that i.i.d. model
+  predicts — see DECISIONS.md/FAILED_APPROACHES.md). The gate switches on ε_k,
+  not raw NIS.
 - **Gate** — the Normal/Cautious/Halt state machine driven by ε_k vs. thresholds
   τ₁ < τ₂, with hysteresis and minimum dwell time.
 - **Planar model** — the reduced 4-state `[θ,ψ,θ̇,ψ̇]` balance-only linearization;
@@ -97,8 +130,12 @@ Python ≥3.11 (dev venv currently 3.12.8), `uv` for env/deps, `numpy`, `scipy`
 - SI units internally; degrees only in plot/log labels suffixed `_deg`.
 - A module isn't "done" until its `tests/` counterpart passes.
 - Never loosen a failing physics test's tolerance to make it pass — find the bug.
-- Out of scope, do not build: cave arena, magnet-polarity detection, CAD, 3D physics
+- Out of scope, do not build: cave arena, magnet-polarity detection, CAD, physics
   engines (MuJoCo/Gazebo/CoppeliaSim), ROS, GUIs, online learning, neural networks.
+  **3D rendering specifically is now in scope** (user-approved mid-project scope
+  change, see DECISIONS.md) — `analysis/animate.py` renders an already-simulated
+  episode's logged state as a 3D scene (PyVista/VTK, off-screen only, no physics
+  computed there). This doesn't reopen the physics-engine/ROS/GUI bans.
 - Grover Adaptive Search makes **no speedup claim** — report the comparison honestly
   either way.
 

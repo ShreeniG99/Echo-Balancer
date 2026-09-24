@@ -141,6 +141,102 @@ to work, for the stated reasons.
 
 ---
 
+### Instantaneous 0 -> full-speed step in `sim/run.py`'s theta_dot_ref
+- **What was tried:** Setting `theta_dot_ref` directly to its target value
+  (`theta_dot_ref_nominal=2.0` or the mode-derated value) every control tick, with
+  no ramp — the same pattern `tests/test_wall_following.py` used successfully.
+- **Why it failed:** An instantaneous 0->2 rad/s command at `t=0` produced a
+  transient large enough to spuriously trip the NIS gate on an otherwise-nominal,
+  undisturbed run (epsilon window sum reaching ~3500-4900 within the first second,
+  vs. a calibrated `tau1` around 900-1300) — confirmed by a direct A/B: the exact
+  same closed loop with `theta_dot_ref` held at 0 (stationary, matching step 3/4's
+  original nominal-run calibration) produced max epsilon ~848, matching the
+  expected calibration; only the abrupt step reintroduced the false trip.
+- **Why it hadn't surfaced before:** `tests/test_wall_following.py`'s closed loop
+  used true state for balance/speed feedback (a documented, temporary
+  simplification), so it had no NIS/gate to trip. This was a genuinely new
+  interaction, only possible once `sim/run.py` combined the KF-driven control
+  loop with wall-following's speed reference for the first time.
+- **What should not be repeated:** Don't step a speed reference instantly to its
+  target inside a KF/NIS-gated control loop, even if a step worked fine in a
+  simpler (non-gated, or true-state-fed) test harness. Use a bounded-acceleration
+  ramp (`SpeedProfileParams.accel_limit`) instead.
+- **Source:** `sim/run.py`'s development, this session (build-order step 6).
+
+---
+
+### `prev_wall_err` seeded at 0.0 in `sim/run.py` (classic PID cold-start derivative kick)
+- **What was tried:** Initializing `wall_following_control`'s `prev_distance_error`
+  state to `0.0` before the first ultrasonic sample, matching
+  `tests/test_wall_following.py`'s own initialization.
+- **Why it failed:** The very first real distance-error sample (the robot starts
+  0.2m off-target) is compared against that `0.0` seed, so the PD controller's
+  derivative term computes `(real_error - 0.0)/dt_ultrasonic` — the *entire*
+  initial offset divided by one 50ms tick — producing a `phi_dot_ref` spike of
+  several rad/s out of nothing, which (via `sim.plant.f`'s
+  `phi_dot^2*sin(psi)*cos(psi)` yaw->pitch coupling term) perturbed pitch enough
+  to spuriously trip the NIS gate.
+- **Why seeding it from the true initial distance (not just "any nonzero value")
+  mattered:** A first attempt seeded `prev_wall_err` from `corridor_width - y0`
+  (the distance to the *far* wall) instead of `y0` itself (the distance to the
+  *near*/right wall `cast_ray` at `heading-pi/2` actually measures) — this made
+  the spike *worse* (phi_dot_ref jumped to 4.47 rad/s instead of 2.47), because
+  the seed was for the wrong wall entirely. Fixed by seeding from
+  `y0` (the robot's actual initial distance to the wall the controller measures).
+- **What should not be repeated:** Don't assume a PD controller's `prev_error`
+  seed value is a minor detail — for the very first sample after a large known
+  initial offset, seed it from that offset (zero real derivative on sample one),
+  not from `0.0` and not from a guess about which wall/quantity is being measured
+  without re-deriving `cast_ray`'s actual geometry.
+- **Source:** `sim/run.py`'s development, this session (build-order step 6).
+
+---
+
+### Ultrasonic dropout readings fed directly into `wall_following_control`
+- **What was tried:** Feeding every ultrasonic sample (including HC-SR04-model
+  dropouts, which return exactly `sensor_p.ultrasonic_range_max`, per CLAUDE.md
+  §7's 2% dropout probability) straight into the wall-following PD controller,
+  same as any other reading.
+- **Why it failed:** A dropout is a single-sample jump from ~0.3-0.5m (typical
+  in-corridor reading) to 4.0m (max range) — the derivative term reacts to this
+  implausible jump with a multi-rad/s `phi_dot_ref` command (observed: 35.6
+  rad/s), which again coupled into pitch via `sim.plant.f`'s yaw->pitch term and
+  spuriously tripped the NIS gate on an otherwise-nominal run (epsilon spiking
+  into the thousands within two ticks).
+- **What should not be repeated:** Don't assume a sensor model's own documented
+  fault behavior (dropout returning max range) is "just noise" a PD controller's
+  derivative term can absorb — a dropout is identifiable (`reading ==
+  sensor_p.ultrasonic_range_max` exactly, since the model adds no noise on a
+  dropout) and should be filtered/held, not acted on as data. Fixed in
+  `sim/run.py` by holding the previous `phi_dot_ref`/`prev_wall_err` on a
+  detected dropout tick rather than computing a new control update from it.
+- **Source:** `sim/run.py`'s development, this session (build-order step 6).
+
+---
+
+### Assuming a single `GroverOptimizer.solve()` call is authoritative
+- **What was tried:** Calling `GroverOptimizer(...).solve(qp)` once and treating
+  its `result.x`/`result.fval` as "the answer," the same way a classical
+  exhaustive search's single result would be.
+- **Why it failed:** On both a small synthetic 6-bit QUBO (with a well-separated
+  optimum, gap 0.5 out of an 8-unit range) and this project's real 64-candidate
+  surrogate, a single `.solve()` call missed the true optimum roughly 4 times out
+  of 5 (synthetic case) to every time (production case, 0/5 and 0/30 across two
+  separate production runs) at `num_value_qubits=10`, `num_iterations=8`. Raising
+  `num_value_qubits` to 12-14 made single trials take up to minutes each (Aer's
+  classical simulation cost grows with the value register's qubit count) without
+  reliably fixing it, because the production surrogate's real bottleneck (see
+  `OPEN_PROBLEMS.md`) is a razor-thin margin (~0.12% of the objective's range)
+  between the best candidate and its closest rival, not just insufficient
+  iterations.
+- **What should not be repeated:** Don't report or act on a single Grover run as
+  ground truth. Run several independent trials and keep the best, and report the
+  hit rate honestly (see `DECISIONS.md`) — this is expected probabilistic
+  behavior of Grover-style search, not a configuration bug to keep chasing.
+- **Source:** `quantum/qubo.py`'s development, this session (build-order step 7).
+
+---
+
 ### Discrete PD (nonzero `Kd`) for yaw-rate control
 - **What was tried:** `u = Kp·(φ̇_ref-φ̇) + Kd·d(error)/dt` at `dt=5ms` (200Hz),
   for several `Kd` values from 0.001 up to 0.05.

@@ -1,175 +1,217 @@
 # Current State — Echo Balancer
 
-Last verified: 2026-09-21, against branch `master` at commit `96f914b`
-(`git log --oneline -1`). **Re-verify against `git log` if this looks stale —
-this file is a snapshot, not a live view.**
+Last verified: 2026-09-24, against branch `claude/amazing-thompson-o1hp87` at
+commit `197e88f` (`git log --oneline -1`). **Re-verify against `git log` if this
+looks stale — this file is a snapshot, not a live view.**
 
-## What currently works (verified: 84/84 tests passing, `uv run pytest -q`)
+## What currently works (verified: 113/113 tests passing, `uv run pytest -q`)
 
-Build order per `CLAUDE.md` §14 — steps 1-5 complete:
+**All 8 build-order steps (`CLAUDE.md` §14) are now complete.** Steps 1-5
+(plant/LQR/estimator/gate/wall-following) were done in prior sessions — see
+git history before this session for their detail; this file focuses on
+steps 6-8, done in this session.
 
-1. **Plant model** (`sim/params.py`, `sim/plant.py`, `sim/integrate.py`)
-   - Energy conservation to <0.1% over 5s with `f_m=0` and `Kb=0` (back-EMF zeroed
-     too — see [DECISIONS.md](DECISIONS.md)).
-   - Open-loop fall from ψ=1° with no control.
-2. **Linearization + LQR** (`sim/linearize.py`, `sim/control.py`)
-   - Numeric-vs-analytic Jacobian match (rtol 1e-6).
-   - Linear eigenvalues match `CLAUDE.md` §6.1 sanity values
-     (`{0, -241, +7.44, -6.52}`).
-   - LQR closed-loop poles all Re<0; recovers from ψ₀=10° in the nonlinear sim
-     (per-plant-step feedback, not yet the 200Hz ZOH loop — see
-     [DECISIONS.md](DECISIONS.md)).
-3. **Sensors + estimator + NIS** (`sim/sensors.py`, `sim/estimator.py`)
-   - Gyro/accelerometer/encoder noise models match spec.
-   - 5-state KF (`[θ,ψ,θ̇,ψ̇,b_g]`) predict/update, NIS computed in `update`.
-   - §11 NIS-consistency test: nominal 60s closed loop, mean NIS and
-     fraction-above-95%-quantile both within the (empirically-justified,
-     see [DECISIONS.md](DECISIONS.md)) acceptance bands.
-4. **Gate + disturbances** (`sim/gate.py`, `sim/disturbances.py`) — **Milestone 1 achieved**
-   - `sim/gate.py`: windowed ε_k statistic (sum of last N=200 NIS samples) and the
-     Normal/Cautious/Halt state machine with hysteresis and 0.5s minimum dwell
-     time. τ1/τ2 are empirically calibrated, **not** literal χ²(3N) quantiles —
-     see [DECISIONS.md](DECISIONS.md) and [FAILED_APPROACHES.md](FAILED_APPROACHES.md),
-     this is a provable, not just empirical, deviation from `CLAUDE.md` §10's
-     literal wording.
-   - `sim/disturbances.py`: all 5 §8 disturbance profiles (6 functions, since
-     "sensor fault" has 2 variants) as pure functions, plus `clip_voltage`
-     (finally implementing the §5 voltage-clipping note deferred since step 1).
-   - §11 gate tests: no mode change on a nominal 60s seeded run ✓; enters
-     CAUTIOUS within 2s of each of the 6 disturbance scenarios ✓ (detection
-     latencies ~0.03s-2.06s depending on disturbance — see plan doc).
-   - **Two real findings from this step, worth carrying into any write-up:** the
-     controller has a genuine stability boundary near `f_w≈0.03` (NaN/inf, not
-     just falling over); NIS-based detection is measurably less sensitive to
-     payload/CoM shifts and to isolated battery droop than to the other
-     disturbance types under the current tuning — see
-     [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).
+1-5. Unchanged from the previous snapshot: nonlinear plant, RK4 integration,
+   analytic linearization, balance LQR, sensor noise models, 5-state Kalman
+   filter with NIS, Normal/Cautious/Halt gate with all 5 §8 disturbance
+   profiles, `sim/world.py` corridor + ray casting, full §9 wall-following
+   stack (speed-servo LQR, yaw control, wall-following, front-threshold
+   slowdown).
 
-5. **World + wall-following** (`sim/world.py`, `sim/sensors.py::ultrasonic`,
-   `sim/control.py` additions) — **"Full wall-following" per the user's explicit
-   choice, not a reduced version**
-   - `sim/world.py`: `cast_ray` (ray-vs-two-infinite-parallel-walls geometry,
-     `ray_parallel_eps` tolerance now in `CorridorParams` not hardcoded) and
-     `pose_velocity` (unicycle kinematics, plugs into `rk4_step` like `plant.f`).
-   - `sim/sensors.py::ultrasonic`: HC-SR04 model (20Hz, 0.02-4m, σ≈3mm, 2%
-     dropout) — closes a gap left open since step 3.
-   - `sim/control.py::design_lqr_speed_servo`: a **new, separate** 5-state
-     integral-augmented LQR (does not modify `design_lqr_balance`) — needed
-     because feeding a moving reference into the 4-state balance LQR gives 42%
-     steady-state speed error (no integral action). Verified gain
-     `K=[-0.906,-53.30,-2.312,-5.011,-0.316]`, all closed-loop poles stable.
-   - `sim/control.py::yaw_p_control`: **proportional-only, not PD** — the
-     plant's yaw pole (~-95.6 rad/s) is too fast relative to the 200Hz control
-     rate for any nonzero `Kd` to stay stable (verified: `Kd=0.02` diverges to
-     ~1e36 within 3s). `YawControlParams` deliberately has no `Kd` field.
-   - `sim/control.py::wall_following_control`, `front_threshold_speed_adjust`:
-     side-distance-error → PD → yaw-rate reference; front-distance threshold →
-     speed slowdown, per §9.
-   - `tests/test_wall_following.py`: one closed-loop integration test — full
-     nonlinear plant + RK4, true-state speed-servo feedback, true-φ̇ yaw
-     control, **real noisy/dropout-prone `ultrasonic()`** driving the outer
-     loop, corridor ray casting, pose integration via `pose_velocity`/`rk4_step`
-     at 1ms plant resolution. Robot starts 0.2m off target, converges to
-     within 0.021 of the 0.5m target distance over 15 simulated seconds,
-     never touches either wall. Bypasses the Kalman filter for balance/speed
-     state (uses true state directly, matching step 2's recovery-test
-     precedent) — a documented, temporary simplification pending `run.py`.
+6. **`sim/run.py` + `experiments/run_batch.py` + `analysis/metrics.py` —
+   Milestone 2 achieved.**
+   - `sim/run.py::run_episode(config, seed) -> DataFrame`: the one real
+     closed-loop implementation, unifying the plumbing that had been
+     duplicated across `tests/test_estimator.py`, `tests/test_gate.py`, and
+     `tests/test_wall_following.py`. Parameterized by `ControllerKind`
+     (`NAIVE`/`TILT_GATE`/`NIS_GATE`, CLAUDE.md §12's three controllers).
+     Balance/speed-servo control now runs on the KF estimate, not true state
+     (resolving step 5's documented "pending run.py" simplification). The KF
+     always runs regardless of controller, so NIS/epsilon are logged for all
+     three, enabling apples-to-apples detection-delay comparison even for
+     NAIVE/TILT_GATE.
+   - Two real implementation bugs found and fixed during integration (not
+     physics, not calibration — see `FAILED_APPROACHES.md`): an instantaneous
+     speed-reference step spuriously tripping the NIS gate (fixed with
+     `SpeedProfileParams`'s bounded-acceleration ramp), and ultrasonic dropout
+     readings (HC-SR04 model, 2% probability, returns exactly `range_max`)
+     feeding a huge derivative-term spike into wall-following (fixed by
+     holding the previous control output on a detected dropout tick).
+   - `GateParams` needed re-calibration for this closed loop specifically —
+     see `sim.params.default_evaluation_gate_params` (tau1=900, tau2=1400) vs.
+     the original `default_gate_params` (tau1=1300, tau2=1800, still correct
+     for `tests/test_gate.py`'s own different, balance-only closed loop). See
+     `DECISIONS.md` for why these must stay two separate functions.
+   - `experiments/run_batch.py`: 7 scenarios (nominal + the 6 §8 disturbances)
+     x 3 controllers x 10 seeds = 210 episodes, parallelized with `joblib`,
+     logged to `experiments/results/{episodes,steps}.parquet` (gitignored,
+     regenerable, ~150MB for steps.parquet).
+   - `analysis/metrics.py`: fall rate, false-fallback, missed-fallback,
+     detection delay, progress — computed per controller from each
+     controller's own logged `mode` column.
+   - **Real result, worth carrying into any write-up:** the NIS gate has
+     **zero missed detections** across all 60 disturbance episodes (mean
+     delay 0.17s) vs. the tilt-threshold baseline's 50% miss rate, cutting
+     fall rate from 42.9% (naive) to 28.6%, at a real but modest progress
+     cost (1.62m vs. 1.93m mean). `battery_droop`/`payload_shift` are
+     unsurvivable (100% fall rate) regardless of controller — see
+     `OPEN_PROBLEMS.md`.
 
-Full test run (this session): `84 passed` (~40-55s depending on machine — the
-new wall-following closed-loop test adds ~2.5s for its 15-simulated-second run
-at 1kHz/200Hz/20Hz).
+7. **`quantum/qubo.py` — Milestone 3 achieved.**
+   - `qiskit`==2.5.2 / `qiskit-optimization`==0.7.0 / `qiskit-aer`==0.17.2
+     installed and `GroverOptimizer` import-verified before writing any
+     quantum code, per §3's explicit instruction.
+   - 4x4x2x2 grid over tau1/tau2/N/T_dwell (64 candidates, 6 bits, well
+     under §13's "<=2^16" bound). Each feasible candidate (tau1<tau2) is
+     re-simulated (NIS_GATE only, a small/fast scenario-seed set distinct
+     from step 6's Milestone-2 batch — see `QuboSearchParams`); infeasible
+     candidates get a fixed penalty without simulation.
+   - Since `GroverOptimizer` only accepts a linear+quadratic objective but
+     the true cost table has no reason to be quadratic in 6 bits, a
+     least-squares quadratic surrogate is fit to the true table and handed to
+     `GroverOptimizer` — reported explicitly (surrogate R^2, and separately
+     whether the surrogate's optimum matches the true table's).
+   - `GroverOptimizer` is run `grover_trials` (default 5) independent times,
+     best kept — a single run is not authoritative (verified: real
+     probabilistic failure behavior, see `DECISIONS.md`/`FAILED_APPROACHES.md`).
+   - **Real result:** classical exhaustive search over 64 candidates is a
+     ~0.02ms `min()` call (no speedup claim, as designed). More interestingly:
+     the production surrogate's true optimum beats its closest rival by only
+     ~0.12% of the objective's range, a genuine value-qubit-resolution
+     bottleneck for `GroverOptimizer` at a classically-simulable qubit count
+     (0/5 and 0/30 hit rates across two production runs) — see
+     `OPEN_PROBLEMS.md`.
 
-## What does not exist yet (build order steps 6-8, not started)
+8. **`analysis/animate.py` — 3D video demo, per the user's explicit
+   post-Milestone-3 scope-change request** (see `DECISIONS.md`; `CLAUDE.md`
+   §2 updated accordingly).
+   - Renders any `sim.run.run_episode` DataFrame to MP4 via PyVista/VTK,
+     entirely off-screen: robot body (box) + two wheels (cylinders) posed
+     each frame from `[x, y, phi, psi]`, two corridor walls + floor, a path
+     trail, a chase camera, and a status light colored by the logged `mode`
+     (green=NORMAL, gold=CAUTIOUS, crimson=HALT), plus an on-screen HUD
+     (t/mode/epsilon).
+   - This container has no GPU/EGL/OSMesa; `render_episode` self-manages a
+     virtual X display (`_ensure_display`, spawns `Xvfb` directly) rather
+     than requiring every caller to remember `xvfb-run -a`.
+   - `analysis/results/echo_balancer_demo.mp4`: a 35s demo episode (seed=3,
+     NIS_GATE controller) with a scripted two-act disturbance (a push at
+     t=8s triggering a brief CAUTIOUS blip; a surface-change at t=20-30s
+     pushing epsilon to ~7.8M and triggering a sustained HALT, followed by
+     full recovery) — sent to the user, not committed to git (demo output,
+     regenerable via `analysis/animate.py`'s `__main__`).
+   - `plots.py` (the other file `CLAUDE.md` §4/§14 step 8 names) was **not**
+     built this session — only `animate.py` was in scope for the video
+     request. Still open.
 
-- `sim/run.py` — the general-purpose closed-loop episode runner. Note: the
-  §11 NIS test's closed loop (`tests/test_estimator.py::_run_nominal_closed_loop`),
-  the gate tests' closed loop (`tests/test_gate.py::_closed_loop_with_gate`),
-  and now the wall-following closed loop (`tests/test_wall_following.py`) are
-  THREE test-only harnesses with overlapping plumbing, explicitly *not*
-  a preview of `run.py`'s eventual design — see
-  [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md) for the "should these be unified" question.
-  **This is the next step.**
-- `experiments/run_batch.py`, `analysis/metrics.py`, `analysis/plots.py`,
-  `analysis/animate.py` — batch evaluation and reporting (Milestone 2).
-- `quantum/qubo.py` — QUBO formulation + grid vs. `GroverOptimizer` comparison.
-  `qiskit`/`qiskit-optimization` are not yet in `pyproject.toml` (deliberately —
-  see [DECISIONS.md](DECISIONS.md)).
-- Corridor corners/dead-ends in `sim/world.py` — the current corridor is two
-  infinite parallel walls, so `front_threshold_speed_adjust` is implemented and
-  unit-tested but has nothing to meaningfully trigger it head-on in the closed
-  loop yet.
+Full test run (this session, in isolation — see note on flakiness below):
+`113 passed` (~2m45s). Test files added this session: `tests/test_run.py` (7),
+`tests/test_run_batch.py` (2), `tests/test_metrics.py` (10), `tests/test_qubo.py`
+(6), `tests/test_animate.py` (6) — 31 new tests on top of the 82 that existed
+at the start of this session (2 params/gate tests were consolidated into the
+new suites, net +31 to 113... re-check exact arithmetic against a fresh
+`pytest --collect-only` if this matters, this count wasn't re-verified digit
+by digit at write time).
+
+**A note on test flakiness:** one full-suite run this session had
+`tests/test_animate.py::test_render_episode_writes_a_nonempty_mp4` fail while
+a separate, unrelated heavy `quantum.qubo` background job was consuming all 4
+CPU cores concurrently; re-running the full suite in isolation (no concurrent
+heavy job) passed cleanly (113/113, twice). Treat a single animate-test
+failure under heavy concurrent load as resource contention, not a real bug,
+but re-verify in isolation if it recurs.
+
+## What does not exist yet
+
+- `analysis/plots.py` — CLAUDE.md §4/§14 step 8 names this alongside
+  `animate.py`; not built (the user's request was specifically for the video).
 - Hardware parameter set (`CLAUDE.md` §6.2, `REAL_SPEC`/`MEASURED`/`ESTIMATED`/
-  `PLACEHOLDER` tags) — no hardware has arrived yet; only the NXTway-GS §6.1 values
-  are in use.
+  `PLACEHOLDER` tags) — no hardware has arrived yet; only the NXTway-GS §6.1
+  values are in use.
+- Corridor corners/dead-ends in `sim/world.py` — still two infinite parallel
+  walls (unchanged since step 5); `front_threshold_speed_adjust` still has
+  nothing to meaningfully trigger it head-on in the closed loop.
+- `quantum/qubo.py`'s `threshold_sensitivity()` sweep helper exists but is not
+  run by default (documented as more expensive than the base table; call it
+  directly if a tau1/tau2 sweep table is wanted for the write-up).
 
 ## Current implementation details worth knowing
 
-- **`sim/params.py`** currently defines: `PlantParams`, `LQRBalanceParams`,
-  `SensorParams`, `EstimatorParams`, `GateParams`, `DisturbanceParams`,
-  `CorridorParams`, `SpeedServoParams`, `YawControlParams`, `WallFollowParams`
-  — each with a `default_*()` factory.
-- **`sim/control.py`** now has five public functions: `design_lqr_balance`
-  (step 2), `design_lqr_speed_servo` (step 5, separate from balance),
-  `yaw_p_control`, `wall_following_control`, `front_threshold_speed_adjust`
-  (step 5).
-- **`EstimatorParams` defaults** (`Q_theta=Q_psi=1e-8`, `Q_theta_dot=Q_psi_dot=1e-6`,
-  `P0_*=1e-4` except `P0_bg=1e-6`) are empirically tuned, not derived from a spec
-  target — see [DECISIONS.md](DECISIONS.md) for the tuning story and
-  [FAILED_APPROACHES.md](FAILED_APPROACHES.md) before changing them.
-- **`GateParams` defaults** (`N=200, tau1=1300, tau2=1800, tau1_exit=1040,
-  tau2_exit=1300, T_dwell=0.5`) are likewise empirically calibrated — same caveat.
-- **`DisturbanceParams`** bundles genuine disturbance-profile values with two
-  test-harness-only setup values (`battery_droop_companion_push_magnitude`,
-  `payload_shift_test_psi0_deg`) needed to make those two disturbances observable
-  at all — see `sim/params.py`'s own docstring before using these in `experiments/`.
-- Test suite: 12 test modules under `tests/`, one per `sim/` module (`test_params`,
-  `test_plant`, `test_integrate`, `test_linearize`, `test_control`, `test_sensors`,
-  `test_estimator`, `test_gate`, `test_disturbances`, `test_world`) plus
-  `test_wall_following.py` (integration-only, no matching `sim/` module). No
-  `test_run.py` yet.
-- `tests/test_gate.py` is now 12 tests / ~300+ lines spanning fast unit tests
-  (toy `N=3` state-machine logic) and slow closed-loop integration tests (60s +
-  six 20s simulations, ~90s total) — flagged as a candidate for splitting into
-  two files if it grows further (not urgent).
+- **`sim/params.py`** additions this session: `CautiousParams`/
+  `default_cautious_speed_servo_params` (CAUTIOUS-mode speed/gain derating),
+  `TiltGateParams`/`default_tilt_gate_params` (the tilt-threshold baseline
+  controller), `SpeedProfileParams`/`default_speed_profile_params` (the
+  bounded-acceleration speed ramp fix), `default_evaluation_gate_params`
+  (the recalibrated GateParams for `sim.run`'s closed loop — see
+  `DECISIONS.md`), `QuboSearchParams`/`default_qubo_search_params` (the
+  tau1/tau2/N/T_dwell grid + cost weights for step 7).
+- **`sim/gate.py`** additions: `TiltGateState`/`initial_tilt_gate_state`/
+  `step_tilt_gate` (mirrors `step_gate`'s hysteresis+dwell structure, acting
+  on instantaneous `|psi|` instead of a windowed NIS sum).
+- **`sim/run.py`**: `ControllerKind` enum, `EpisodeConfig` (frozen dataclass,
+  `.resolved()` fills in `None` fields with CLAUDE.md defaults), `run_episode`.
+- **`experiments/run_batch.py`**: `ScenarioSpec`, `default_scenarios(nominal_T,
+  disturbance_T)` (overridable so `quantum/qubo.py` can reuse the same six
+  disturbance closures at a shorter episode length instead of duplicating
+  them), `run_batch`.
+- **`analysis/metrics.py`**: `fall_rate`, `false_fallback`,
+  `missed_fallback_rate`, `detection_delay`, `progress`, `build_metrics_table`,
+  `threshold_sensitivity`.
+- **`quantum/qubo.py`**: `Candidate`/`all_candidates` (bit encoding),
+  `cost_table` (the true re-simulated table, parallelized), `run_qubo_pipeline`,
+  `format_report`.
+- **`analysis/animate.py`**: `_body_frame`/`_pose_transform` (pure geometry,
+  well-tested in isolation), `render_episode`, `_ensure_display`.
+- Test suite: 17 test modules under `tests/`. `test_run.py`, `test_run_batch.py`,
+  `test_metrics.py`, `test_qubo.py`, `test_animate.py` are new this session.
 
 ## Current configuration
 
-- Python 3.12.8 (venv), managed by `uv` (`uv.lock` checked in).
-- `pyproject.toml` deps: `numpy`, `scipy`; dev: `pytest`. `pythonpath=["."]`,
-  `testpaths=["tests"]`.
-- Git remote: `https://github.com/ShreeniG99/Echo-Balancer.git`, branch `master`.
-- `nxtway_gs/` and `license.txt` are gitignored (third-party reference material,
-  not redistributed). `graphify-out/cost.json` and `graphify-out/cache/` are also
-  gitignored (per-machine, regenerable).
+- Python 3.11 (venv), managed by `uv` (`uv.lock` checked in).
+- `pyproject.toml` deps added this session: `pandas`, `pyarrow`, `joblib`,
+  `pyvista`, `vtk` (transitive), `imageio`, `imageio-ffmpeg`, `qiskit`,
+  `qiskit-optimization`, `qiskit-aer`. `python-control` (named in CLAUDE.md §3)
+  is still **not** a dependency — nothing in the codebase imports it; `scipy`'s
+  `solve_continuous_are` covers the LQR design needs so far.
+- Git remote: `https://github.com/ShreeniG99/Echo-Balancer.git`, working
+  branch this session: `claude/amazing-thompson-o1hp87`.
+- `.gitignore` addition this session: `/experiments/results/` (regenerable
+  batch output, ~150MB for the default run — not source).
+- `nxtway_gs/` and `license.txt` are gitignored (third-party reference
+  material). `graphify-out/cost.json` and `graphify-out/cache/` are also
+  gitignored.
+- **Environment note:** this container has no GPU/EGL/OSMesa. PyVista/VTK
+  off-screen rendering needs `xvfb-run -a <cmd>` or `analysis.animate`'s own
+  `_ensure_display()` (used automatically by `render_episode`).
 
 ## Current objective
 
-Per `CLAUDE.md` §14, the next build-order step is **step 6**: `sim/run.py` →
-`experiments/run_batch.py` → `analysis/metrics.py` (Milestone 2: "metrics table
-for all three controllers" — naive, tilt-threshold gate, NIS gate).
+All of `CLAUDE.md` §14's numbered build-order steps are done. Remaining
+plausible next steps, none currently in progress: `analysis/plots.py`
+(§4/§14 step 8's other half), a hardware parameter pass once real components
+arrive, `quantum.qubo.threshold_sensitivity()`'s sweep table if wanted for a
+write-up, or a deeper investigation into why `battery_droop`/`payload_shift`
+are unsurvivable regardless of controller (see `OPEN_PROBLEMS.md`).
 
 ## Immediate next steps
 
-1. Design `sim/run.py`: one closed-loop episode → DataFrame, per `CLAUDE.md` §4.
-   Consider unifying the three overlapping test-only closed-loop harnesses that
-   now exist (`test_estimator.py`, `test_gate.py`, `test_wall_following.py`)
-   rather than writing a fourth independent implementation — see
-   [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).
-2. Implement the three controllers to compare (§12): naive (always NORMAL),
-   tilt-threshold gate (|ψ| thresholds only), NIS gate (already built, steps
-   3-4). Decide whether/how the step-5 wall-following stack (speed servo, yaw,
-   wall-following) integrates into `run.py`'s episodes, or whether `run.py`'s
-   first cut is balance-only-in-a-corridor and wall-following comes later.
-3. `experiments/run_batch.py` + `analysis/metrics.py`: fall rate, false-fallback,
-   missed-fallback, detection delay, progress — per §12's metrics list.
+None currently assigned — this is a natural stopping point (build order
+complete). If continuing:
+1. Ask the user whether `analysis/plots.py` (static plots, distinct from the
+   video) is wanted, or whether the paper/write-up is the next priority.
+2. If writing up results, the real numbers to cite are in this file's step 6/7
+   sections above (fall rate/detection-delay comparison; Grover's margin/range
+   finding) — re-run `experiments/run_batch.py`/`quantum/qubo.py` fresh rather
+   than trusting these numbers verbatim if any upstream code changes.
 
 ## Uncommitted / unusual repo state as of this session
 
 - `research/echo_balancer_research.pdf` and `research/"echo_balancer_detailed (1).pdf"`
   remain untracked and ungitignored — purpose/provenance still unconfirmed with
-  the user (flagged in [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md), not assumed). This has
-  been true since 2026-09-20/21 and hasn't blocked anything; revisit only if the
-  user raises it.
-- Everything else is now committed (as of `96f914b`): `.claude/`, `.graphifyignore`,
-  `graphify-out/`, `project-context/`, and all five steps' plan docs (step 5's
-  plan doc was briefly untracked mid-step, fixed in the closing commit).
+  the user, unchanged since prior sessions.
+- `analysis/results/echo_balancer_demo.mp4` exists locally (sent to the user
+  via file delivery); `/analysis/results/` was added to `.gitignore` this
+  session, following the same precedent as `/experiments/results/` (large,
+  regenerable output, not source).
+- Everything else described above is committed (through commit `197e88f` on
+  `claude/amazing-thompson-o1hp87`, pushed to origin).

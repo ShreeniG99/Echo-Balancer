@@ -304,6 +304,135 @@ source actually states them — no speculation.
 
 ---
 
+### Decision: user-approved scope change — 3D animation instead of the planned 2D side/top view
+- **What:** `CLAUDE.md` §2 originally excluded "3D rendering" alongside CAD/physics
+  engines/ROS/GUIs; the user explicitly asked for a 3D video demo instead. §2/§3/§4/§14
+  were updated: "3D rendering" removed from the out-of-scope list (CAD/physics
+  engines/ROS/GUIs/online learning/neural networks stay banned), `pyvista`+`vtk`
+  (+`imageio`/`imageio-ffmpeg`) added to the stack, `analysis/animate.py`'s role
+  changed from "2D side view + top view" to a 3D scene render.
+- **Reason:** Direct user request ("I want the 3D video, not 2D. Demo has to be as
+  impressive as possible"), explicitly deferred until after build-order steps 6/7
+  were done (also the user's own instruction) so it didn't interrupt Milestone
+  2/3 work.
+- **Why this doesn't reopen the other bans:** `analysis/animate.py` computes no
+  physics (it poses/colors meshes from `sim.run`'s already-simulated,
+  already-logged DataFrame columns) and never opens an interactive window
+  (`off_screen=True` throughout) — not a physics engine, not a GUI, not CAD.
+- **Date:** 2026-09-24 (this session, after steps 6-8).
+- **Still current:** Yes.
+
+---
+
+### Decision: `analysis/animate.py` self-manages a virtual X display (`_ensure_display`)
+- **What:** Rather than requiring every caller (including `pytest`) to remember to
+  wrap the whole process in `xvfb-run -a`, `render_episode` calls `_ensure_display()`
+  first, which spawns `Xvfb :99 ...` directly via `subprocess.Popen` and sets
+  `DISPLAY` if no display is already set.
+- **Reason:** This container has no GPU/EGL/OSMesa (confirmed: VTK's off-screen
+  render fails outright with "bad X server connection" and "libOSMesa not found"
+  without a display); `pyvista.start_xvfb()` (the old built-in helper for exactly
+  this) no longer exists in pyvista 0.49.0. `xvfb-run -a <cmd>` works but only if
+  the *caller* remembers to use it — a self-managed fallback inside the module
+  itself is more robust for a module other code (tests, `sim.run` users) may call
+  without knowing about this environment's display quirks.
+- **Alternatives considered:** requiring `xvfb-run -a` externally on every
+  invocation — rejected as too easy to forget (and confirmed to actually break: an
+  early version without `_ensure_display` needed `xvfb-run -a uv run pytest ...`
+  for `tests/test_animate.py` to pass at all).
+- **Date:** 2026-09-24.
+- **Still current:** Yes. If a future environment *does* have a real
+  GPU/EGL/OSMesa, `_ensure_display` is a no-op there too (checks `DISPLAY` first).
+
+---
+
+### Decision: `quantum/qubo.py`'s GroverOptimizer objective is a fitted quadratic surrogate, not the true cost table
+- **What:** The true (re-simulated) 64-candidate cost table has no reason to be a
+  degree<=2 polynomial in its 6 candidate-index bits — `GroverOptimizer`
+  (`qiskit_optimization`) only accepts a linear+quadratic objective. `quantum/qubo.py`
+  fits a least-squares quadratic surrogate (`_fit_quadratic_surrogate`, constant +
+  linear + all pairwise terms) to the true table and hands GroverOptimizer that
+  surrogate, then separately reports (a) whether Grover finds the surrogate's own
+  optimum and (b) whether the surrogate's optimum matches the true table's.
+- **Reason:** No other option exists for using GroverOptimizer on a black-box
+  cost function of more than 2 variables without either (i) an exponential number
+  of higher-order terms, or (ii) a fitted low-degree approximation. Reporting both
+  checks separately (rather than one conflated "did it work") keeps the honesty
+  CLAUDE.md §1/§13 asks for intact: a surrogate mismatch is a statement about the
+  approximation's quality, a Grover mismatch is a statement about the search
+  itself.
+- **Date:** 2026-09-24 (step 7).
+- **Still current:** Yes.
+
+---
+
+### Decision: `GroverOptimizer` is run multiple independent trials, best-of-N kept
+- **What:** `run_qubo_pipeline(grover_trials=5)` runs `GroverOptimizer.solve()`
+  five independent times and keeps the best `fval` found, reporting both the best
+  result and how many of the N trials actually found the surrogate's true optimum
+  (`grover_trial_hits`).
+- **Reason:** Empirically verified during development (independent synthetic 6-bit
+  QUBOs, not just this project's real surrogate) that a single `GroverOptimizer.solve()`
+  call has a real, non-negligible failure probability — roughly 1-in-5 to 1-in-10
+  observed at `num_value_qubits=10`, `num_iterations=8` across several synthetic
+  and real trials, and the actual production run (real 64-candidate surrogate,
+  margin 0.12% of range — see `OPEN_PROBLEMS.md`) got 0/5 and 0/30 hits across two
+  separate runs. This is genuine probabilistic quantum-search behavior (GAS makes
+  no single-shot guarantee), not a bug — treating one `.solve()` call as
+  authoritative would misrepresent how the algorithm actually works.
+- **Alternatives considered:** raising `num_value_qubits` to brute-force more
+  precision — tried (12, 14); 14 value qubits made a single trial take minutes
+  (classical statevector simulation cost grows with qubit count), making it
+  impractical at this scale. Kept `num_value_qubits=10` and used repeated trials
+  instead.
+- **Date:** 2026-09-24 (step 7).
+- **Still current:** Yes.
+
+---
+
+### Decision: `sim/run.py`'s balance/speed-servo control uses the KF estimate, not true state
+- **What:** `run_episode`'s control loop computes `u = -K5 @ err5` from
+  `kf.x_hat`, not `x_true` — resolving the "bypasses the Kalman filter for
+  balance/speed state ... a documented, temporary simplification pending
+  `run.py`" note left in step 5's `tests/test_wall_following.py`.
+- **Reason:** This is what `run.py` was explicitly flagged as the place to fix
+  (`CURRENT_STATE.md`'s step-5 entry, pre-step-6). Yaw control still uses the true
+  `phi_dot` (`x_true[5]`) since the 5-state KF has no yaw state at all — nothing
+  to switch there.
+- **Date:** 2026-09-24 (step 6).
+- **Still current:** Yes.
+
+---
+
+### Decision: a new `default_evaluation_gate_params()`, not a change to `default_gate_params()`
+- **What:** `sim/run.py`'s closed loop (5-state speed-servo LQR, continuous
+  forward motion via wall-following) uses a **separate** `GateParams` factory
+  (`tau1=900, tau2=1400, tau1_exit=720, tau2_exit=1000`, same `N=200`/`T_dwell=0.5`)
+  from the original `default_gate_params()` (`tau1=1300, tau2=1800, ...`), which
+  is unchanged and still used by `tests/test_gate.py`'s own closed loop.
+- **Reason:** These are genuinely different closed loops with different nominal
+  NIS statistics, not two "reasonable" choices for the same system.
+  `tests/test_gate.py`'s closed loop is balance-only (`design_lqr_balance`, robot
+  near-stationary): its nominal-run epsilon max is ~959, calibrated against
+  `tau1=1300`. `sim.run`'s closed loop (`design_lqr_speed_servo`, robot actually
+  driving) has nominal-run epsilon max ~604 but the weakest disturbance response
+  is ~1094 — using the *old* 1300/1800 thresholds here would make every
+  disturbance in `experiments/run_batch.py`'s NIS_GATE controller silently
+  undetectable (they'd all stay under `tau1=1300`). Overwriting
+  `default_gate_params()`'s values instead would have broken
+  `tests/test_gate.py::test_no_mode_change_on_nominal_60s_run` (its own documented
+  max of 959.1 would exceed a lowered `tau1=900`).
+- **Alternatives considered:** changing `default_gate_params()` in place —
+  rejected, breaks an already-correct, already-passing test calibrated against a
+  different (still-valid) closed loop; the two closed loops are both still used
+  (unit-level gate/KF test vs. the real evaluation loop) and both need their own
+  correct calibration.
+- **Date:** 2026-09-24 (step 6).
+- **Still current:** Yes. **Do not merge these two GateParams factories** without
+  first checking which closed loop each caller actually drives.
+
+---
+
 ### Decision: this session — Graphify installed project-scoped, git hooks not installed
 - **What:** Graphify (`graphifyy` on PyPI) installed via `uv tool install`,
   registered with Claude Code via `graphify install --project --platform claude`

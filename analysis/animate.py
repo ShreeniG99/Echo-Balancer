@@ -128,6 +128,11 @@ def render_episode(
     plotter.add_mesh(wall_near, color="steelblue", opacity=0.45)
     plotter.add_mesh(wall_far, color="steelblue", opacity=0.45)
 
+    path_points = np.column_stack([df["x"].to_numpy(), df["y"].to_numpy(), np.full(len(df), 0.01)])
+    if len(path_points) > 1:
+        path_line = pv.MultipleLines(points=path_points)
+        plotter.add_mesh(path_line, color="cyan", line_width=3, opacity=0.6)
+
     # Meshes are built in their own local (x=forward, y=lateral, z=up)
     # frame, centered at the origin, so _pose_transform's rotation columns
     # place them correctly however the robot is posed each frame.
@@ -163,8 +168,12 @@ def render_episode(
         focal_pt = axle_center + 0.5 * forward
         plotter.camera_position = [tuple(cam_pos), tuple(focal_pt), (0.0, 0.0, 1.0)]
 
+        hud_lines = [f"t={row['t']:.2f}s", f"mode: {row['mode']}"]
+        if "epsilon" in row and not pd.isna(row["epsilon"]):
+            hud_lines.append(f"epsilon: {row['epsilon']:.0f}")
         plotter.add_text(
-            f"t={row['t']:.2f}s   mode={row['mode']}", position="upper_left", font_size=14, color="white", name="hud",
+            "\n".join(hud_lines), position="upper_left", font_size=14,
+            color=MODE_COLORS.get(row["mode"], "white"), name="hud",
         )
 
         plotter.write_frame()

@@ -39,10 +39,33 @@ actually checking.
   `REAL_SPEC`/`MEASURED`/`ESTIMATED`/`PLACEHOLDER`-tagged values exist yet for the
   ESP32/GY-87/TB6612FNG hardware — only the NXTway-GS §6.1 values are in use. Any
   paper claim must currently be scoped to simulation only.
-- **`qiskit`/`qiskit-optimization` are not installed or import-verified.** §3
-  requires verifying `GroverOptimizer` imports before writing any quantum code;
-  this hasn't happened. Don't assume a compatible version pair without checking —
-  the spec explicitly warns pinning blind risks a redo.
+- **`GroverOptimizer`'s value-qubit encoding cannot reliably resolve this
+  project's real QUBO surrogate's optimum at a classically-simulable qubit
+  count.** Confirmed (not suspected): the production 64-candidate quadratic
+  surrogate's true minimum beats its closest rival by only ~0.12% of the
+  objective's overall range (0.026 out of a 21.05-unit span). `GroverOptimizer`
+  found the true surrogate optimum in 0/5 and 0/30 independent trials (two
+  separate production runs) at `num_value_qubits=10`; raising `num_value_qubits`
+  to 14 to get more resolution made a single trial take minutes (classical
+  Aer-simulation cost of the value register). This is a genuine, reportable
+  finding about applying value-qubit-based GAS to a continuous-valued,
+  closely-spaced cost landscape, not a bug in the QUBO construction (verified
+  independently: `QuadraticProgram.objective.evaluate()` matches the module's
+  own `_surrogate_value()` exactly for all 64 bitstrings).
+- **`battery_droop` and `payload_shift` are unsurvivable (100% fall rate)
+  regardless of which controller is driving**, per the real Milestone-2 batch
+  (`experiments/run_batch.py`'s default 7-scenario x 3-controller x 10-seed run):
+  naive, tilt-threshold, and NIS-gate controllers all show 100% fall rate on
+  these two scenarios, even though the NIS gate detects both quickly (see
+  `analysis/metrics.py`'s `detection_delay` — 0 missed detections across all 60
+  disturbance episodes). This is a natural extension of the pre-existing
+  documented finding that these two disturbances are hard to detect at all under
+  the current tuning (see below) — apparently they're also hard to *survive* once
+  detected, since HALT keeps balancing but doesn't change the underlying
+  mass/CoM or voltage mismatch the estimator is fighting. Not yet root-caused
+  further (e.g. whether a different `EstimatorParams`/`GateParams` tuning would
+  help, or whether this is a fundamental limit of NIS-gating without adapting the
+  controller's own model) — a real, reportable limitation either way.
 - **One Japanese-language reference PDF has a garbled filename**
   (`nxtway_gs/docs/japanese/NXTway-GS âéâfâïâxü[âXèJö¡.pdf` — Shift-JIS mojibake).
   Cosmetic; low priority; the directory is gitignored reference material anyway.
@@ -65,10 +88,16 @@ actually checking.
 
 ## Unknowns (genuinely open, not yet investigated)
 
-- **Whether Grover Adaptive Search shows any speedup over classical grid search
-  on this project's QUBO.** By design the project makes no claim either way —
-  this is meant to be discovered empirically once `quantum/qubo.py` exists, not
-  assumed in advance.
+- ~~Whether Grover Adaptive Search shows any speedup over classical grid search
+  on this project's QUBO~~ **Resolved, stale as of 2026-09-24.** No speedup, by
+  design/expectation (classical exhaustive search over 64 candidates is a ~0.02ms
+  `min()` call). More specifically: Grover's own single-run reliability on this
+  project's real surrogate is poor (see "Confirmed problems" above), a separate
+  and more interesting finding than the speed comparison itself.
+- **Whether a different `EstimatorParams`/`GateParams` tuning would make
+  `battery_droop`/`payload_shift` survivable, or whether the underlying model
+  mismatch (mass/CoM shift, voltage ceiling) is fundamentally uncontrollable via
+  gating alone** (see "Confirmed problems" above) — not yet investigated.
 - **Real-hardware sensor noise characteristics.** All σ values in
   `SensorParams` are explicitly "starting points" (`CLAUDE.md` §7), not measured —
   actual GY-87/encoder/ultrasonic noise on the real ESP32 build is unknown until
@@ -80,17 +109,16 @@ actually checking.
   into `project-context/` or the Graphify graph** — see "Confirmed problems"
   above; this is a "what does the user want" unknown, not a technical one.
 - **Whether `front_threshold_speed_adjust` needs a corridor dead-end to be
-  meaningfully validated end-to-end.** It's implemented and unit-tested
-  correctly in isolation, but the current corridor (two infinite parallel
-  walls, per §9's own "cut wall-following first if behind schedule" spirit)
-  has nothing ahead to trigger it via a genuine head-on obstacle in the closed
-  loop — only heading-drift-toward-a-side-wall exercises it indirectly.
-- **Whether/how `sim/run.py` (step 6) should unify the three overlapping
-  test-only closed-loop harnesses** that have now accumulated
-  (`tests/test_estimator.py::_run_nominal_closed_loop`,
-  `tests/test_gate.py::_closed_loop_with_gate`,
-  `tests/test_wall_following.py::test_follows_wall_without_crashing`) — each
-  independently hand-rolls plant-stepping/control/state-threading plumbing.
-  Not yet a confirmed problem (each is still small and independently correct),
-  but the duplication is growing and `run.py` is the natural point to resolve
-  it, one way or another.
+  meaningfully validated end-to-end.** Still open: `sim/run.py` (step 6) still
+  uses the same two-infinite-parallel-walls corridor, so this is unchanged from
+  step 5 — implemented and unit-tested correctly in isolation, but nothing ahead
+  to trigger it via a genuine head-on obstacle in the closed loop.
+- ~~Whether/how `sim/run.py` (step 6) should unify the three overlapping
+  test-only closed-loop harnesses~~ **Resolved, stale as of 2026-09-24.**
+  `sim/run.py::run_episode` is now the one real closed-loop implementation
+  (parameterized by `ControllerKind`); the three test-only harnesses in
+  `tests/test_estimator.py`/`tests/test_gate.py`/`tests/test_wall_following.py`
+  remain as their own independent (smaller, faster, narrower-scope) unit-level
+  checks and were not deleted or rewritten to call `run_episode` -- they test a
+  simpler closed loop (balance-only or true-state-fed) deliberately, per the
+  decisions already on record for why those simplifications existed.

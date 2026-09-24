@@ -17,3 +17,8 @@ __pycache__/
 # experiments/run_batch.py output: regenerable (steps.parquet alone is ~150MB
 # for the default 210-episode batch), not source.
 /experiments/results/
+
+# analysis/animate.py output: regenerable demo video, not source. Delivered
+# to the user directly rather than committed -- ask before changing this if a
+# rendered demo needs to live in git.
+/analysis/results/
