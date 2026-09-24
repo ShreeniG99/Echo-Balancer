@@ -170,6 +170,17 @@ class GateParams:
     level. tau1/tau2 are therefore calibrated directly against real
     simulated nominal runs with margin, not derived from a chi2 quantile
     formula.
+
+    This calibration is specifically against the plain 4-state balance-
+    only design_lqr_balance closed loop with the robot near-stationary
+    (tests/test_gate.py's own closed loop) -- see
+    default_evaluation_gate_params for the separate recalibration needed
+    once the robot is actually driving (sim/run.py, step 6): a different
+    closed loop (design_lqr_speed_servo, continuous forward motion) has
+    genuinely different nominal NIS statistics, not just a different
+    "reasonable" choice of tau, so the two must not be merged into one
+    default without breaking whichever closed loop's tests were
+    calibrated against the other.
     """
 
     N: int              # window size (# of 5ms samples); 200 = 1s window
@@ -182,6 +193,32 @@ class GateParams:
 
 def default_gate_params() -> GateParams:
     return GateParams(N=200, tau1=1300.0, tau2=1800.0, tau1_exit=1040.0, tau2_exit=1300.0, T_dwell=0.5)
+
+
+def default_evaluation_gate_params() -> GateParams:
+    """Recalibrated in sim/run.py's development (step 6) for the closed
+    loop the section 12 evaluation actually drives -- the 5-state
+    integral-augmented speed-servo LQR (sim.control.design_lqr_speed_servo)
+    plus wall-following, continuously commanding real forward motion, not
+    the plain 4-state balance-only design_lqr_balance GateParams' own
+    default is calibrated against with the robot near-stationary. This is
+    the speed-servo-driven-closed-loop recalibration GateParams' docstring
+    already anticipated ("Root cause: a slow ~10s theta-position
+    closed-loop pole from the still-missing section 9 speed-servo integral
+    term"): with the robot actually driving, physical disturbances that
+    act through velocity-dependent terms (surface-change friction acting
+    on theta_dot; the plant's own phi_dot^2*sin(psi)*cos(psi) yaw->pitch
+    coupling) are far more consequential than at near-zero speed, which
+    widens rather than narrows the nominal/disturbed separation:
+    nominal-run epsilon max across 10 seeds is ~604 under this closed loop
+    (vs. GateParams' own ~959 under its different closed loop), and the
+    weakest disturbance response (push) peaks at ~1094 -- both checked in
+    sim/run.py's development. tau1=900/tau2=1400 sit with margin in that
+    gap and above it respectively; tau1_exit/tau2_exit keep GateParams'
+    default hysteresis ratios (0.8 and ~0.72) rather than being
+    independently re-derived.
+    """
+    return GateParams(N=200, tau1=900.0, tau2=1400.0, tau1_exit=720.0, tau2_exit=1000.0, T_dwell=0.5)
 
 
 @dataclass(frozen=True)
@@ -319,6 +356,74 @@ class YawControlParams:
 
 def default_yaw_control_params() -> YawControlParams:
     return YawControlParams(Kp=3.0)
+
+
+@dataclass(frozen=True)
+class CautiousParams:
+    """CAUTIOUS-mode speed derating (CLAUDE.md section 10: "speed ref x
+    0.4"). Applied on top of whatever theta_dot_ref front_threshold_speed_adjust
+    already produced.
+    """
+
+    speed_ref_factor: float
+
+
+def default_cautious_params() -> CautiousParams:
+    return CautiousParams(speed_ref_factor=0.4)
+
+
+def default_cautious_speed_servo_params() -> "SpeedServoParams":
+    """CAUTIOUS-mode LQR gain set (CLAUDE.md section 10: "softer Q in the
+    LQR gain set"). Same 5-state structure as default_speed_servo_params;
+    the speed-tracking-error weights (Q_theta, Q_theta_dot, Q_integral) are
+    reduced to 1/4 of NORMAL's nominal 1/1/10 while Q_psi (balance
+    stability) is left unchanged -- trades speed-tracking aggressiveness
+    for gentler control effort in CAUTIOUS, not balance robustness.
+    Starting point, not tuned against data yet.
+    """
+    return SpeedServoParams(Q_theta=0.25, Q_psi=1e3, Q_theta_dot=0.25, Q_psi_dot=1.0, Q_integral=2.5, R=1e2)
+
+
+@dataclass(frozen=True)
+class TiltGateParams:
+    """Tilt-threshold gate baseline (CLAUDE.md section 12, controller 2):
+    mode switches on |psi| thresholds only -- no Kalman filter/NIS
+    involved. Same hysteresis + minimum-dwell structure as GateParams for
+    a fair comparison, but the thresholds are in degrees of tilt, not
+    epsilon (windowed NIS sum), so they are calibrated independently. Set
+    with margin below the section 5 fall condition (|psi| > 45 deg).
+    Starting point, not tuned against data yet.
+    """
+
+    tau1_deg: float       # CAUTIOUS entry |psi| threshold
+    tau2_deg: float       # HALT entry |psi| threshold
+    tau1_exit_deg: float  # CAUTIOUS -> NORMAL hysteresis exit (< tau1_deg)
+    tau2_exit_deg: float  # HALT -> CAUTIOUS hysteresis exit (< tau2_deg)
+    T_dwell: float        # seconds, minimum time in a mode before any transition
+
+
+def default_tilt_gate_params() -> TiltGateParams:
+    return TiltGateParams(tau1_deg=5.0, tau2_deg=15.0, tau1_exit_deg=3.0, tau2_exit_deg=10.0, T_dwell=0.5)
+
+
+@dataclass(frozen=True)
+class SpeedProfileParams:
+    """Forward-speed reference ramp: theta_dot_ref moves toward its target
+    (from front_threshold_speed_adjust / the gate's mode) at a bounded
+    acceleration rather than stepping instantly. An instantaneous 0 -> 2
+    rad/s step at t=0 is not a realistic motor command, and was found
+    (sim/run.py's development) to itself produce a transient large enough
+    to spuriously trip the NIS gate on an otherwise-nominal, undisturbed
+    run -- confirmed by the gate behaving exactly per the section-11
+    calibration once the step was replaced with this ramp. Starting
+    point, not tuned against data beyond removing that artifact.
+    """
+
+    accel_limit: float  # rad/s^2, max |d(theta_dot_ref)/dt|
+
+
+def default_speed_profile_params() -> SpeedProfileParams:
+    return SpeedProfileParams(accel_limit=2.0)
 
 
 @dataclass(frozen=True)

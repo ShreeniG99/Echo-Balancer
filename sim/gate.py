@@ -11,7 +11,9 @@ rather than literal chi2(3N) quantiles.
 from dataclasses import dataclass
 from enum import Enum
 
-from sim.params import GateParams
+import numpy as np
+
+from sim.params import GateParams, TiltGateParams
 
 
 class GateMode(Enum):
@@ -72,3 +74,45 @@ def step_gate(state: GateState, nis_k: float, dt: float, gate_p: GateParams) -> 
         time_in_mode = 0.0
 
     return GateState(mode=new_mode, nis_window=window, time_in_mode=time_in_mode), epsilon
+
+
+@dataclass(frozen=True)
+class TiltGateState:
+    mode: GateMode
+    time_in_mode: float
+
+
+def initial_tilt_gate_state() -> TiltGateState:
+    return TiltGateState(mode=GateMode.NORMAL, time_in_mode=0.0)
+
+
+def step_tilt_gate(state: TiltGateState, psi: float, dt: float, tilt_p: TiltGateParams) -> TiltGateState:
+    """Tilt-threshold gate baseline (CLAUDE.md section 12): mode switches
+    on |psi| thresholds only, no windowing -- same hysteresis + minimum-
+    dwell structure as step_gate, but acting directly on the instantaneous
+    tilt magnitude rather than a windowed NIS statistic.
+    """
+    abs_psi_deg = abs(np.degrees(psi))
+    time_in_mode = state.time_in_mode + dt
+    can_transition = time_in_mode >= tilt_p.T_dwell
+
+    new_mode = state.mode
+    if can_transition:
+        if state.mode is GateMode.NORMAL:
+            if abs_psi_deg > tilt_p.tau2_deg:
+                new_mode = GateMode.HALT
+            elif abs_psi_deg > tilt_p.tau1_deg:
+                new_mode = GateMode.CAUTIOUS
+        elif state.mode is GateMode.CAUTIOUS:
+            if abs_psi_deg > tilt_p.tau2_deg:
+                new_mode = GateMode.HALT
+            elif abs_psi_deg < tilt_p.tau1_exit_deg:
+                new_mode = GateMode.NORMAL
+        elif state.mode is GateMode.HALT:
+            if abs_psi_deg < tilt_p.tau2_exit_deg:
+                new_mode = GateMode.CAUTIOUS
+
+    if new_mode != state.mode:
+        time_in_mode = 0.0
+
+    return TiltGateState(mode=new_mode, time_in_mode=time_in_mode)
