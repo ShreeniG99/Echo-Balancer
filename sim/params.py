@@ -442,3 +442,54 @@ class WallFollowParams:
 
 def default_wall_follow_params() -> WallFollowParams:
     return WallFollowParams(target_distance=0.5, Kp=2.0, Kd=0.5, front_slow_threshold=0.5, front_slow_factor=0.3)
+
+
+@dataclass(frozen=True)
+class QuboSearchParams:
+    """Offline gate-threshold search space and cost weights (CLAUDE.md
+    section 13, Milestone 3): tau1/tau2/N/T_dwell grids, and
+    J = w_fall*fall_rate + w_false_fallback*false_fallback_frac +
+    w_progress*(1 - mean_progress_m).
+
+    Grid sizes are chosen as powers of two (4 x 4 x 2 x 2 -> 2+2+1+1 = 6
+    bits, 64 candidates) so every 6-bit string decodes to a real grid
+    point -- no padding codes to penalize beyond the tau1 >= tau2
+    infeasibility CLAUDE.md names, and total candidates (64) is well under
+    section 13's "total <= 2^16" bound. tau1_grid/tau2_grid bracket
+    default_evaluation_gate_params' 900/1400 with some values on either
+    side (including some where tau1 >= tau2, so the infeasibility penalty
+    has real work to do, not a vacuous check).
+
+    nominal_T/disturbance_T are deliberately shorter than
+    experiments.run_batch's Milestone-2 scenarios (which are for
+    reporting-quality metrics): re-simulating 64 candidates x len(seeds) x
+    7 scenarios is the dominant cost of this whole step, and section 13's
+    own "total <= 2^16 combinations" bound already signals this step is
+    meant to stay computationally bounded, not reproduce Milestone 2's
+    full seed count/episode length.
+
+    infeasible_penalty (20.0) is deliberately just above the feasible J
+    range (~[-4, 13] given these weights) rather than a huge outlier value
+    (e.g. 1000): quantum.qubo fits a single least-squares quadratic
+    surrogate over all 64 (feasible-simulated + infeasible-penalized)
+    points to hand to GroverOptimizer, and an extreme outlier would
+    distort that fit for the feasible region that actually matters.
+    """
+
+    tau1_grid: tuple[float, ...] = (700.0, 900.0, 1100.0, 1300.0)
+    tau2_grid: tuple[float, ...] = (1000.0, 1200.0, 1400.0, 1600.0)
+    N_grid: tuple[int, ...] = (150, 200)
+    T_dwell_grid: tuple[float, ...] = (0.3, 0.5)
+
+    w_fall: float = 10.0
+    w_false_fallback: float = 2.0
+    w_progress: float = 1.0
+    infeasible_penalty: float = 20.0
+
+    seeds: tuple[int, ...] = (0, 1, 2)
+    nominal_T: float = 20.0
+    disturbance_T: float = 15.0
+
+
+def default_qubo_search_params() -> QuboSearchParams:
+    return QuboSearchParams()

@@ -49,12 +49,20 @@ class ScenarioSpec:
     x0_psi_deg: float = 0.0
 
 
-def default_scenarios() -> list[ScenarioSpec]:
+def default_scenarios(nominal_T: float = NOMINAL_T, disturbance_T: float = DISTURBANCE_T) -> list[ScenarioSpec]:
     """The nominal scenario plus one per CLAUDE.md section 8 disturbance,
     with the same onset/magnitude choices tests/test_gate.py's per-
     disturbance closures use (see that file for why, e.g., battery droop
     needs a companion push fired after its ramp completes, or payload
-    shift needs a concurrent mild tilt)."""
+    shift needs a concurrent mild tilt).
+
+    nominal_T/disturbance_T default to this module's own Milestone-2
+    lengths, but are overridable so other callers (quantum/qubo.py's
+    offline threshold search, which needs much shorter episodes to stay
+    computationally bounded across its whole candidate grid) can reuse
+    these same scenario definitions without duplicating the six
+    disturbance closures.
+    """
     dp = default_disturbance_params()
     battery_push_onset = dp.battery_droop_onset + dp.battery_droop_duration
 
@@ -90,16 +98,16 @@ def default_scenarios() -> list[ScenarioSpec]:
         return x, b, p, sp, v_batt
 
     return [
-        ScenarioSpec(name="nominal", disturbance=None, onset=None, T=NOMINAL_T),
-        ScenarioSpec(name="push", disturbance=push, onset=dp.push_onset, T=DISTURBANCE_T),
-        ScenarioSpec(name="surface_change", disturbance=surface_change, onset=dp.surface_change_onset, T=DISTURBANCE_T),
-        ScenarioSpec(name="gyro_bias_fault", disturbance=gyro_bias_fault, onset=dp.gyro_bias_fault_onset, T=DISTURBANCE_T),
-        ScenarioSpec(name="accel_noise_fault", disturbance=accel_noise_fault, onset=dp.accel_noise_fault_onset, T=DISTURBANCE_T),
+        ScenarioSpec(name="nominal", disturbance=None, onset=None, T=nominal_T),
+        ScenarioSpec(name="push", disturbance=push, onset=dp.push_onset, T=disturbance_T),
+        ScenarioSpec(name="surface_change", disturbance=surface_change, onset=dp.surface_change_onset, T=disturbance_T),
+        ScenarioSpec(name="gyro_bias_fault", disturbance=gyro_bias_fault, onset=dp.gyro_bias_fault_onset, T=disturbance_T),
+        ScenarioSpec(name="accel_noise_fault", disturbance=accel_noise_fault, onset=dp.accel_noise_fault_onset, T=disturbance_T),
         ScenarioSpec(
-            name="payload_shift", disturbance=payload_shift, onset=dp.payload_shift_onset, T=DISTURBANCE_T,
+            name="payload_shift", disturbance=payload_shift, onset=dp.payload_shift_onset, T=disturbance_T,
             x0_psi_deg=dp.payload_shift_test_psi0_deg,
         ),
-        ScenarioSpec(name="battery_droop", disturbance=battery_droop, onset=battery_push_onset, T=DISTURBANCE_T),
+        ScenarioSpec(name="battery_droop", disturbance=battery_droop, onset=battery_push_onset, T=disturbance_T),
     ]
 
 
