@@ -10,13 +10,15 @@ The contribution is the **gate + its evaluation**, not the robot. Grover makes *
 
 ## 2. Scope
 
-In scope: planar+yaw plant, balance controller, sensor models, Kalman filter, NIS gate, disturbance injection, 2D corridor wall-following, batch evaluation, QUBO threshold selection, 2D animation.
+In scope: planar+yaw plant, balance controller, sensor models, Kalman filter, NIS gate, disturbance injection, 2D corridor wall-following, batch evaluation, QUBO threshold selection, 3D animation.
 
-**Out of scope, do not build:** cave arena, magnet-polarity detection, CAD, 3D rendering, physics engines (MuJoCo/Gazebo/CoppeliaSim), ROS, GUIs, online learning, neural networks.
+**Out of scope, do not build:** cave arena, magnet-polarity detection, CAD, physics engines (MuJoCo/Gazebo/CoppeliaSim), ROS, GUIs, online learning, neural networks.
+
+**Scope change (user-approved, post-Milestone-3):** the original spec excluded 3D rendering along with CAD/physics engines/ROS/GUIs. The user explicitly asked for a 3D video demo instead of the planned 2D side/top view. This does not reopen the other bans: `analysis/animate.py` renders a 3D *scene* (robot body/wheels/corridor geometry from `sim.run`'s own logged state) offline to MP4 via PyVista/VTK -- it is not a physics engine (no dynamics are computed there, only drawn), not a GUI (no interactive window, `off_screen=True` throughout), and not CAD. The plant/world models themselves stay exactly as specified below (planar+yaw plant, 2D corridor geometry) -- only the rendering of already-simulated data becomes 3D. Do not use this exception to justify MuJoCo/Gazebo/CoppeliaSim, ROS, ordinary GUIs, or actual CAD modeling -- those remain out of scope.
 
 ## 3. Stack
 
-Python ≥ 3.11, `uv` for environment. `numpy`, `scipy`, `python-control`, `pandas` + `pyarrow` (Parquet), `joblib`, `matplotlib` (+ ffmpeg for MP4), `pytest`, `qiskit` + `qiskit-optimization` (pin a compatible pair in `pyproject.toml`; verify `GroverOptimizer` imports before writing quantum code).
+Python ≥ 3.11, `uv` for environment. `numpy`, `scipy`, `python-control`, `pandas` + `pyarrow` (Parquet), `joblib`, `matplotlib` (+ ffmpeg for MP4), `pyvista` + `vtk` (+ `imageio`/`imageio-ffmpeg`, for the 3D animation -- see section 2's scope change), `pytest`, `qiskit` + `qiskit-optimization` + `qiskit-aer` (pin a compatible pair in `pyproject.toml`; verify `GroverOptimizer` imports before writing quantum code -- confirmed working with `qiskit==2.5.2`/`qiskit-optimization==0.7.0`/`qiskit-aer==0.17.2`).
 
 Rules:
 - All parameters live in `sim/params.py` as frozen dataclasses. **No magic numbers anywhere else.**
@@ -25,6 +27,9 @@ Rules:
 - Type hints and SI units everywhere. Angles in radians internally; degrees only in plots/logs labelled `_deg`.
 - Each module ships with its tests (section 11). A module is not done until its tests pass.
 - Do not "fix" a failing physics test by loosening its tolerance. Find the bug.
+- `GroverOptimizer` only accepts a linear+quadratic (QUBO) objective. A re-simulated cost table over several independent parameters has no reason to be quadratic in its candidate-index bits, so `quantum/qubo.py` fits a least-squares quadratic surrogate to the true table before handing it to `GroverOptimizer`, and reports both (a) whether Grover finds the surrogate's own optimum and (b) whether the surrogate's optimum matches the true table's -- never silently treat the surrogate as exact.
+- `GroverOptimizer`/Grover Adaptive Search is a probabilistic quantum search: a single `.solve()` call has a real, non-negligible chance of returning a non-optimal sample even with enough qubits/iterations to represent the true optimum (this environment's own default `qiskit-aer` Sampler run: ~1-in-5 success at 6 input qubits). Run it multiple independent trials and keep the best, and report the trial hit-rate -- do not treat one run as authoritative.
+- PyVista/VTK needs a working OpenGL context even for `off_screen=True` rendering; on a headless machine with no EGL/OSMesa, wrap render calls in `xvfb-run -a` (confirmed working in this environment's container; verify GPU/EGL/OSMesa availability before assuming `xvfb-run` is unnecessary elsewhere).
 
 ## 4. Repository layout
 
@@ -43,7 +48,7 @@ sim/run.py           # one closed-loop episode -> DataFrame
 experiments/run_batch.py
 analysis/metrics.py
 analysis/plots.py
-analysis/animate.py
+analysis/animate.py    # 3D scene render (PyVista/VTK, off-screen) of a logged episode -> MP4
 quantum/qubo.py      # cost table -> QUBO; grid vs GroverOptimizer
 tests/
 ```
@@ -190,7 +195,7 @@ Metrics per run (logged to Parquet, one row per episode + a per-step log):
 5. `world.py` → wall-following.
 6. `run.py` → `run_batch.py` → `metrics.py`. **Milestone 2: metrics table for all three controllers.**
 7. `qubo.py`. **Milestone 3: grid vs Grover.**
-8. `plots.py`, `animate.py` (2D side view + top view, background colour = gate mode).
+8. `plots.py`, `animate.py` (3D scene -- robot body/wheels posed from the logged state, corridor walls, camera following the robot -- background/HUD colour = gate mode; see section 2's scope change).
 
 If behind schedule after milestone 1: cut wall-following first.
 

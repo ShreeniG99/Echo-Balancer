@@ -226,6 +226,8 @@ class QuboRunResult:
     oracle_calls: int
     grover_matches_surrogate_optimum: bool
     surrogate_matches_true_optimum: bool
+    surrogate_optimum_gap: float
+    surrogate_value_range: float
 
 
 def run_qubo_pipeline(
@@ -258,9 +260,18 @@ def run_qubo_pipeline(
 
     constant, linear, quadratic, r_squared = _fit_quadratic_surrogate(table)
 
+    surrogate_values = sorted(_surrogate_value(b, constant, linear, quadratic) for b in table.keys())
     surrogate_exhaustive_best_bits = min(
         table.keys(), key=lambda b: _surrogate_value(b, constant, linear, quadratic)
     )
+    # How hard this surrogate actually is for a value-qubit-based search: the
+    # margin between the best and second-best candidate, relative to the
+    # objective's overall span. A small ratio here means GroverOptimizer needs
+    # correspondingly more value qubits (num_value_qubits) than the "range"
+    # alone would suggest, just to tell the true optimum apart from its
+    # closest rival -- see run_qubo_pipeline's docstring and format_report.
+    surrogate_optimum_gap = surrogate_values[1] - surrogate_values[0]
+    surrogate_value_range = surrogate_values[-1] - surrogate_values[0]
 
     qprog = _build_quadratic_program(constant, linear, quadratic)
     t0 = time.time()
@@ -302,6 +313,8 @@ def run_qubo_pipeline(
         oracle_calls=total_oracle_calls,
         grover_matches_surrogate_optimum=(best_bits == surrogate_exhaustive_best_bits),
         surrogate_matches_true_optimum=(surrogate_exhaustive_best_bits == true_best_bits),
+        surrogate_optimum_gap=surrogate_optimum_gap,
+        surrogate_value_range=surrogate_value_range,
     )
 
 
@@ -326,6 +339,25 @@ def format_report(r: QuboRunResult) -> str:
         "",
         f"Grover found the surrogate's true minimizer: {r.grover_matches_surrogate_optimum}",
         f"Surrogate's minimizer matches the TRUE (re-simulated) table's minimizer: {r.surrogate_matches_true_optimum}",
+        "",
+        f"Surrogate optimum's margin over its closest rival: {r.surrogate_optimum_gap:.4f} "
+        f"(objective spans {r.surrogate_value_range:.4f} overall, a "
+        f"{100 * r.surrogate_optimum_gap / r.surrogate_value_range:.2f}% margin)",
+    ]
+    if r.surrogate_optimum_gap / r.surrogate_value_range < 0.01:
+        lines.append(
+            "  This margin is small relative to the objective's range -- resolving it reliably would need"
+        )
+        lines.append(
+            "  more value qubits than are classically simulable at reasonable cost here (num_value_qubits=14"
+        )
+        lines.append(
+            "  was observed, during development, to take minutes per Grover trial). A low Grover hit rate above"
+        )
+        lines.append(
+            "  is consistent with this genuine value-qubit resolution limit, not necessarily a search failure."
+        )
+    lines += [
         "",
         "No speedup claim: this compares a 64-entry classical min() against a full",
         "Grover-Adaptive-Search circuit run on a simulator, at a scale chosen for",
