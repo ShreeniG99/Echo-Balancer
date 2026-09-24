@@ -47,7 +47,7 @@ sim/world.py         # 2D corridor geometry + ray casting
 sim/run.py           # one closed-loop episode -> DataFrame
 experiments/run_batch.py
 analysis/metrics.py
-analysis/plots.py
+analysis/plots.py     # episode timeline, cross-controller comparison, tau1/tau2 sensitivity heatmap
 analysis/animate.py    # 3D scene render (PyVista/VTK, off-screen) of a logged episode -> MP4
 quantum/qubo.py      # cost table -> QUBO; grid vs GroverOptimizer
 tests/

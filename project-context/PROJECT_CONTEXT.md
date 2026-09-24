@@ -38,15 +38,15 @@ sim/world.py           # 2D corridor geometry + ray casting
 sim/run.py             # one closed-loop episode -> DataFrame
 experiments/run_batch.py  # batch evaluation across the 3 controllers x 7 scenarios x N seeds
 analysis/metrics.py    # fall rate / false-fallback / missed-fallback / detection delay / progress
+analysis/plots.py      # episode timeline, cross-controller comparison, tau1/tau2 sensitivity heatmap
 analysis/animate.py    # 3D scene render (PyVista/VTK, off-screen) of a logged episode -> MP4
-analysis/plots.py                                                     [NOT YET BUILT]
 quantum/qubo.py        # cost table -> quadratic surrogate -> grid vs GroverOptimizer
 tests/                 # one test module per sim/ module, required before a module is "done"
 ```
 
-**All build-order steps (`CLAUDE.md` §14) are complete except `analysis/plots.py`.**
-See [CURRENT_STATE.md](CURRENT_STATE.md) for exact detail and the real
-cross-controller/Grover results.
+**Every file `CLAUDE.md` §4 names now exists — all build-order steps (§14)
+are complete.** See [CURRENT_STATE.md](CURRENT_STATE.md) for exact detail and
+the real cross-controller/Grover results.
 
 ## Key components (built so far)
 
@@ -89,18 +89,23 @@ cross-controller/Grover results.
   logged episode. **Scope change from the original 2D side/top-view plan,
   user-approved** — see DECISIONS.md. Self-manages a virtual display
   (`_ensure_display`) since this container has no GPU/EGL/OSMesa.
+- **`analysis/plots.py`** — `plot_episode_timeline` (psi/epsilon over time,
+  mode-shaded), `plot_controller_comparison` (small-multiple bars, one metric
+  per panel), `plot_threshold_sensitivity` (a heatmap over
+  `analysis.metrics.threshold_sensitivity`'s tau1/tau2 sweep — CLAUDE.md
+  §12's "threshold sensitivity" metric). Plain matplotlib, `Agg` backend —
+  no display needed, unlike `animate.py`'s PyVista/VTK.
 
 ## Technologies
 
 Python ≥3.11, `uv` for env/deps, `numpy`, `scipy` (`solve_continuous_are`,
 `expm`, `chi2`), `pandas`+`pyarrow` (Parquet), `joblib` (batch parallelism),
-`pyvista`+`vtk`+`imageio`/`imageio-ffmpeg` (3D animation, see the scope-change
-note below), `qiskit`==2.5.2 + `qiskit-optimization`==0.7.0 + `qiskit-aer`==0.17.2
+`matplotlib` (static plots, `Agg` backend), `pyvista`+`vtk`+`imageio`/
+`imageio-ffmpeg` (3D animation, see the scope-change note below),
+`qiskit`==2.5.2 + `qiskit-optimization`==0.7.0 + `qiskit-aer`==0.17.2
 (verified `GroverOptimizer` import before writing quantum code), `pytest`.
 Not yet added as a direct dependency: `python-control` (nothing imports it —
-`scipy`'s `solve_continuous_are` has covered every LQR design so far),
-`matplotlib` (only present transitively via `pyvista`; would need adding
-directly if `analysis/plots.py` gets built).
+`scipy`'s `solve_continuous_are` has covered every LQR design so far).
 
 ## Project-specific terminology
 

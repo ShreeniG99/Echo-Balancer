@@ -30,8 +30,10 @@ finding that the surrogate's true optimum margin is only ~0.12% of the
 objective's range, a real value-qubit-resolution bottleneck); and, per an
 explicit **user-approved mid-session scope change**, a 3D video demo
 (`analysis/animate.py`, PyVista/VTK, off-screen) replacing the originally-planned
-2D side/top-view animation. 113/113 tests pass. Full detail:
-[CURRENT_STATE.md](CURRENT_STATE.md).
+2D side/top-view animation, followed by `analysis/plots.py` (episode timeline,
+cross-controller comparison bars, tau1/tau2 sensitivity heatmap) on explicit
+request. **Every file `CLAUDE.md` §4 names now exists.** 121/121 tests pass.
+Full detail: [CURRENT_STATE.md](CURRENT_STATE.md).
 
 ## Architecture you need to know
 
@@ -114,12 +116,10 @@ this was step 5's known "pending run.py" simplification, now resolved.
 - Surface-change disturbance sits close to a real plant instability
   (`f_w≥~0.03` causes NaN/inf) — unchanged from before this session.
 - Hardware params (§6.2) are entirely placeholder.
-- `analysis/plots.py` (the other half of build-order step 8) not built —
-  only the video (`animate.py`) was in scope for the user's request.
 - Two untracked PDFs under `research/` with unclear purpose — don't assume,
-  ask the user. `analysis/results/echo_balancer_demo.mp4` (the demo video) is
-  gitignored, following the same precedent as `/experiments/results/` -- ask
-  the user first if a rendered demo ever needs to live in git instead.
+  ask the user. `analysis/results/` (demo video + plot PNGs) is gitignored,
+  following the same precedent as `/experiments/results/` -- ask the user
+  first if rendered output ever needs to live in git instead.
 - Full list: [OPEN_PROBLEMS.md](OPEN_PROBLEMS.md).
 
 ## Exact config/parameters in force right now
@@ -177,16 +177,23 @@ change it also happens to include — `CLAUDE.md`/`animate.py`/`test_animate.py`
 were unintentionally bundled into it via a broad `git add -A`; the diff itself
 is correct and complete, just under-described by the message).
 
+`analysis/plots.py` was built right after (episode timeline, cross-controller
+comparison bars, tau1/tau2 sensitivity heatmap), on explicit follow-up
+request. One real bug found there too: passing string labels directly to
+`ax.bar(labels, values, ...)` silently dropped a category from the *saved*
+figure once a bar's height was `NaN` (visible only in the rendered PNG, not
+right after `ax.bar()` returns) — fixed with explicit numeric x-positions.
+
 **Graphify status:** not touched this session — the codebase changed
-substantially (5 new modules, ~30 new tests); run `graphify update .` before
+substantially (6 new modules, ~39 new tests); run `graphify update .` before
 trusting the graph.
 
 ## What the next model should do
 
-- Ask the user what's next: `analysis/plots.py` (the other half of build-order
-  step 8), a paper/write-up using the real numbers now available (Milestone 2's
-  cross-controller comparison, Milestone 3's Grover findings), or something else
-  entirely — the build order itself is now complete.
+- Every file `CLAUDE.md` §4 names now exists. Ask the user what's next: a
+  paper/write-up using the real numbers now available (Milestone 2's
+  cross-controller comparison, Milestone 3's Grover findings, the plots/video
+  already rendered), a hardware parameter pass, or something else entirely.
 - If asked to investigate further: the `battery_droop`/`payload_shift`
   unsurvivability finding (100% fall rate regardless of controller, despite
   fast detection) is a natural next research question, not yet root-caused.

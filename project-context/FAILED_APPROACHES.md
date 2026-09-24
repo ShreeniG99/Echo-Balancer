@@ -237,6 +237,33 @@ to work, for the stated reasons.
 
 ---
 
+### Passing string labels directly to `ax.bar(labels, values, ...)` with a NaN value present
+- **What was tried:** `analysis.plots.plot_controller_comparison` called
+  `ax.bar(labels, values.to_numpy(), color=colors)` with `labels` a list of 3
+  controller name strings, where `values` included a `NaN` (Naive's
+  `mean_detection_delay_s` is undefined -- it never leaves NORMAL, so there's
+  nothing to time).
+- **Why it failed:** The category whose bar height was `NaN` ("Naive")
+  disappeared from the *rendered/saved* figure entirely -- no tick, no label,
+  just blank space where its bar should have been. This was NOT reproducible
+  by inspecting `ax.get_xticklabels()` immediately after the `ax.bar()` call
+  (all 3 labels were present there); it only showed up in the actual saved
+  PNG, confirmed by cropping and re-examining the output image directly.
+- **What should not be repeated:** Don't rely on matplotlib's implicit
+  categorical-axis tick generation (`ax.bar(string_labels, values)`) when any
+  value can legitimately be `NaN` -- verify by rendering, not just by
+  inspecting the Axes object's tick state right after the plotting call
+  (deferred layout/draw logic can still change what's visible in the final
+  figure). Fixed by using explicit numeric x-positions
+  (`ax.bar(np.arange(n), values)`) plus explicit `ax.set_xticks`/
+  `set_xticklabels`, which is unaffected by any bar's height.
+- **Source:** `analysis/plots.py`'s development, this session (build-order
+  step 8), caught by visually inspecting the rendered PNG before writing
+  tests -- codified as
+  `tests/test_plots.py::test_plot_controller_comparison_keeps_all_ticks_despite_nan`.
+
+---
+
 ### Discrete PD (nonzero `Kd`) for yaw-rate control
 - **What was tried:** `u = Kp·(φ̇_ref-φ̇) + Kd·d(error)/dt` at `dt=5ms` (200Hz),
   for several `Kd` values from 0.001 up to 0.05.
