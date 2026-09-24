@@ -13,3 +13,7 @@ __pycache__/
 # but per-machine LLM cost tracking and local query cache are not.
 /graphify-out/cost.json
 /graphify-out/cache/
+
+# experiments/run_batch.py output: regenerable (steps.parquet alone is ~150MB
+# for the default 210-episode batch), not source.
+/experiments/results/
