@@ -21,7 +21,9 @@ Regenerate constants after any change to `sim/params.py`: `PYTHONPATH=. uv run p
 | Wheel slip (encoder offset) | KY-040 knob |
 | Clear | serial `r` |
 
-LEDs: green NORMAL, yellow CAUTIOUS, red HALT (+ buzzer = the HALT flag). CAUTIOUS/HALT only change the indicators here: there is no speed servo in this firmware, so "speed ref x0.4 / 0" has nothing to act on.
+LEDs: green NORMAL, yellow CAUTIOUS, red HALT (+ buzzer = the HALT flag). The mode also drives the control (CLAUDE.md section 10): the speed-servo LQR tracks a wheel-speed reference of 0.3 rad/s in NORMAL, x0.4 with the softer-Q gain set in CAUTIOUS, and 0 in HALT (keeps balancing in place). Same gains and reference as `sim/run.py`, generated from `sim/params.py`.
+
+Step-by-step first-run instructions: [WOKWI_GUIDE.md](WOKWI_GUIDE.md). Gate comparison plot: `docs/firmware_gate_comparison.png` (regenerate with `PYTHONPATH=. uv run python analysis/plot_firmware_gate.py`).
 
 ## Hardware mapping / caveats
 - TB6612FNG and the GY-87's HMC5883L have no Wokwi part; only the MPU6050 half is wired. Motor voltage is printed (`u_V`) instead of driving a motor.
@@ -30,6 +32,7 @@ LEDs: green NORMAL, yellow CAUTIOUS, red HALT (+ buzzer = the HALT flag). CAUTIO
 
 ## Verification (host, `tests/test_firmware_core.py`)
 - The C++ core reproduces `sim/estimator.py` + `sim/gate.py` (NIS, epsilon, both gate modes, psi_hat, u) on identical measurements: rtol 1e-6, modes identical.
-- Nominal 60 s x 3 seeds: no mode change; mean NIS ~2.93 (chi2(3) mean = 3); max epsilon ~870 vs tau1 = 1300.
-- At onset t = 5 s (seeds 1-3): gyro bias step -> HALT within 0.3-0.5 s; accel noise x5 -> within 0.2 s; accel tilt 0.1 rad -> within 0.2 s.
-- **Not detected / honest limits:** a 0.1 rad/s push triggers the gate on 1 of 3 seeds (small, recovers fast; same finding as the Python sim). A payload shift makes the true linear plant unstable under the nominal LQR: the gate does flag it (HALT within 0.5 s) but the virtual robot falls anyway in 2 of 3 seeds, since HALT here cannot change the control law.
+- Nominal 60 s x 3 seeds (speed servo on): no mode change; mean NIS ~3.0 (chi2(3) mean = 3); max epsilon <= 701 vs tau1 = 1300.
+- At onset t = 5 s (seeds 1-3): gyro bias step -> detected 0.46-0.49 s; accel noise x5 -> 0.11-0.17 s; accel tilt 0.1 rad -> 0.11-0.14 s. In every case HALT zeroes the speed reference and the robot keeps balancing (does not fall).
+- The tilt-threshold baseline misses accel noise entirely and reacts late to gyro bias (see the plot): this is the NIS gate's advantage.
+- **Not detected / honest limits:** the 0.1 rad/s push is **not** detected on any of 3 seeds (epsilon peaks ~1150 < tau1 = 1300 for ~1 s). A payload shift is flagged within 0.3-0.4 s (HALT), but the nominal LQR cannot stabilise the heavier plant, so the virtual robot still falls in 3 of 3 seeds: the gate sees the mismatch but HALT cannot fix an unstable closed loop.

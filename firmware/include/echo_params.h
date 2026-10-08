@@ -23,6 +23,7 @@ static const double ECHO_CAUTIOUS_SPEED_SCALE = 0.4;
 static const double ECHO_PUSH_KICK = 0.1;  // rad/s psi_dot kick
 static const double ECHO_GYRO_BIAS_STEP = 0.05;  // rad/s
 static const double ECHO_ACCEL_NOISE_MULT = 5.0;
+static const double ECHO_SPEED_REF_NOMINAL = 0.3;  // rad/s wheel-speed reference in NORMAL
 // Row-major.  x = [theta, psi, theta_dot, psi_dot, b_g]; y = [theta_enc, psi_dot_gyro, psi_acc]
 static const double ECHO_AD[25] = {1, -0.0033805431039577909, 0.0035893013138028683, 0.001404457403861505, 0, 0, 1.0025315884032229, 0.00068011121046463959, 0.0043244004439597274, 0, 0, -1.0919227229836423, 0.52783408476605143, 0.46878537212999133, 0, 0, 0.88732250043257888, 0.22768554168137237, 0.77484604672185031, 0, 0, 0, 0, 0, 1};
 static const double ECHO_BD[5] = {0.0013711305405045896, -0.00066103503230831068, 0.45892231480543144, -0.22129927736179625, 0};
@@ -34,3 +35,6 @@ static const double ECHO_Q[25] = {1e-08, 0, 0, 0, 0, 0, 1e-08, 0, 0, 0, 0, 0, 9.
 static const double ECHO_R[9] = {2.5384784982225715e-05, 0, 0, 0, 2.5000000000000001e-05, 0, 0, 0, 0.00040000000000000002};
 static const double ECHO_P0[25] = {0.0001, 0, 0, 0, 0, 0, 0.0001, 0, 0, 0, 0, 0, 0.0001, 0, 0, 0, 0, 0, 0.0001, 0, 0, 0, 0, 0, 9.9999999999999995e-07};
 static const double ECHO_K_BALANCE[4] = {-0.10000000000006222, -49.301760743329638, -2.0917299593639633, -4.5454531150306847};
+// Speed-servo LQR on [theta-theta_ref, psi, theta_dot-theta_dot_ref, psi_dot, integral]
+static const double ECHO_K5_NOMINAL[5] = {-0.90627756033020734, -53.304743890914708, -2.3116976672895886, -5.0108860603934682, -0.31622776601695701};
+static const double ECHO_K5_CAUTIOUS[5] = {-0.5825964302967056, -51.535227643754311, -2.221812947058238, -4.8138382099306822, -0.14142135623735116};

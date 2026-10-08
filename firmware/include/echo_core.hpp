@@ -269,6 +269,7 @@ struct Sim {
   TiltGate tilt_gate;
   Faults faults;
   double u_prev = 0.0;
+  double theta_ref = 0.0, z_int = 0.0, speed_ref = 0.0;  // speed servo state (sim/run.py)
   double nis = 0.0, epsilon = 0.0, u_cmd = 0.0;
   bool fallen = false;
 
@@ -283,7 +284,17 @@ struct Sim {
     epsilon = nis_gate.step(nis);
     tilt_gate.step(kf.x[1]);
     if (std::fabs(robot.x[1]) > ECHO_FALL_PSI) fallen = true;  // motors off on fall only
-    u_cmd = balance_u(kf.x);
+    // Gate -> control (CLAUDE.md section 10): NORMAL full speed, CAUTIOUS x0.4 with the
+    // softer-Q gain set, HALT speed 0 (keeps balancing in place). Uses the estimate x_hat.
+    const Mode m = nis_gate.mode;
+    const double *K5 = (m == Mode::CAUTIOUS) ? ECHO_K5_CAUTIOUS : ECHO_K5_NOMINAL;
+    speed_ref = (m == Mode::NORMAL) ? ECHO_SPEED_REF_NOMINAL
+              : (m == Mode::CAUTIOUS ? ECHO_SPEED_REF_NOMINAL * ECHO_CAUTIOUS_SPEED_SCALE : 0.0);
+    const double e[5] = {kf.x[0] - theta_ref, kf.x[1], kf.x[2] - speed_ref, kf.x[3], z_int};
+    theta_ref += speed_ref * ECHO_DT;
+    u_cmd = 0;
+    for (int i = 0; i < 5; ++i) u_cmd -= K5[i] * e[i];
+    z_int += (kf.x[0] - theta_ref) * ECHO_DT;
     const double v = fallen ? 0.0 : clip_motor(u_cmd / 2, ECHO_V_BATT);
     u_prev = 2 * v;
   }

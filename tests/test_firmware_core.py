@@ -113,3 +113,17 @@ def test_sensor_faults_enter_non_normal_within_window(scenarios_bin, scenario, s
     assert mode[t < 5.0].max() == 0
     hit = np.nonzero((mode > 0) & (t >= 5.0))[0]
     assert len(hit) and t[hit[0]] - 5.0 <= default_disturbance_params().detection_window_s
+
+
+def test_gate_mode_changes_the_control(scenarios_bin):
+    """Section 10 gate -> control: NORMAL tracks the nominal speed ref, HALT commands 0
+    while the robot keeps balancing (does not fall)."""
+    ref = default_run_params().corridor_theta_dot_ref_nominal
+    d = _scenario(scenarios_bin, "gyro_bias", 1)
+    t, mode, speed_ref = d[:, 0], d[:, 3], d[:, 8]
+    assert np.allclose(speed_ref[mode == 0], ref)
+    halt = mode == 2
+    assert halt.any() and np.allclose(speed_ref[halt], 0.0)
+    assert d[:, 7].max() == 0, "HALT must keep balancing, not fall"
+    # wheels actually follow the reference in NORMAL (true theta_dot, last 2 s before onset)
+    assert abs(d[(t > 3) & (t < 5), 9].mean() - ref) < 0.5 * ref

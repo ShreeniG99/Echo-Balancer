@@ -1,5 +1,5 @@
 // Host harness: runs the Sim for a scenario and prints per-tick
-// "t nis eps nis_mode tilt_mode psi_true psi_hat fallen".
+// "t nis eps nis_mode tilt_mode psi_true psi_hat fallen speed_ref theta_dot_true".
 // usage: host_scenarios <scenario> <seed> <seconds> <onset_s>
 #include <cstdio>
 #include <cstdlib>
@@ -24,8 +24,8 @@ int main(int argc, char **argv) {
       else if (!std::strcmp(sc, "accel_tilt")) sim.faults.accel_offset = 0.1;
     }
     sim.tick();
-    std::printf("%.3f %.9g %.9g %d %d %.9g %.9g %d\n", t, sim.nis, sim.epsilon, (int)sim.nis_gate.mode,
-                (int)sim.tilt_gate.mode, sim.robot.x[1], sim.kf.x[1], (int)sim.fallen);
+    std::printf("%.3f %.9g %.9g %d %d %.9g %.9g %d %.9g %.9g\n", t, sim.nis, sim.epsilon, (int)sim.nis_gate.mode,
+                (int)sim.tilt_gate.mode, sim.robot.x[1], sim.kf.x[1], (int)sim.fallen, sim.speed_ref, sim.robot.x[2]);
   }
   return 0;
 }
