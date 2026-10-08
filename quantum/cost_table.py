@@ -7,7 +7,7 @@ changes the robot's behaviour, so log replay is not valid):
   - nominal corridor x seeds                                    -> progress
 and scored with J = w_fall*fall_rate + w_false*false_fallback + w_progress*(1-progress).
 
-Usage: PYTHONPATH=. uv run python -m quantum.cost_table   (~20 min on 4 cores)
+Usage: PYTHONPATH=. uv run python -m quantum.cost_table   (~20-25 min on 4 cores)
 """
 
 from itertools import product

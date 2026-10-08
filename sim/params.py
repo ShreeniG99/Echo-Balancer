@@ -452,6 +452,13 @@ class QuboParams:
     Cost J = w_fall * fall_rate + w_false * false_fallback + w_progress *
     (1 - progress), exactly as specified; progress is the corridor distance
     relative to the naive controller on the same seeds.
+
+    Grid history: v1 used tau1 levels (5.0, 6.0, 6.5, 7.5) / tau2 (6, 9, 11,
+    14) with 30 s nominal runs; after the ultrasonic-dropout fix every v1
+    candidate scored J = 0 (no level reaches the nominal epsilon range: mean
+    NIS 2.89, worst 60 s window level 4.0-4.7 at N=200, 4.8-5.2 at N=100), so
+    the grid was widened down into that range (docs/results/
+    qubo_cost_table_grid_v1.csv keeps the flat v1 table).
     """
 
     tau1_levels: tuple[float, ...]
@@ -473,8 +480,8 @@ class QuboParams:
 
 def default_qubo_params() -> QuboParams:
     return QuboParams(
-        tau1_levels=(5.0, 6.0, 6.5, 7.5),
-        tau2_levels=(6.0, 9.0, 11.0, 14.0),
+        tau1_levels=(3.5, 4.5, 5.0, 6.5),
+        tau2_levels=(5.5, 7.0, 9.0, 14.0),
         N_values=(100, 200),
         T_dwell_values=(0.25, 0.5),
         tau1_exit_ratio=0.8,
@@ -482,7 +489,7 @@ def default_qubo_params() -> QuboParams:
         w_false=1.0,
         w_progress=1.0,
         seeds=(0, 1, 2),
-        nominal_T=30.0,
+        nominal_T=60.0,
         grover_seeds=(0, 1, 2, 3, 4),
         grover_iterations=8,
         w_detect_variant=1.0,

@@ -51,7 +51,7 @@ def test_default_gate_is_a_candidate():
     hits = [decode(i, qp) for i in range(64)]
     hits = [c for c in hits if (c["tau1"], c["tau2"], c["N"], c["T_dwell"]) == (gd.tau1, gd.tau2, gd.N, gd.T_dwell)]
     assert len(hits) == 1 and hits[0]["feasible"]
-    assert sum(decode(i, qp)["feasible"] for i in range(64)) == 52
+    assert sum(decode(i, qp)["feasible"] for i in range(64)) == 60
 
 
 def test_bits_to_index_little_endian():
