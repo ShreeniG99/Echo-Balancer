@@ -353,3 +353,21 @@ def test_halt_mode_zeroes_corridor_speed_reference():
     # The gate recovers all the way back to NORMAL later in the episode --
     # evidence the HALT branch leaves the closed loop stable, not stuck.
     assert "NORMAL" in set(df["mode"].iloc[halt_rows.index[-1]:])
+
+
+def test_fallback_prevents_payload_shift_fall():
+    """FallbackParams (softer HALT gains + KF Q inflation outside NORMAL), ported
+    from the firmware: seed 1's payload shift falls without it and is held upright
+    with it (nonlinear plant). The gate trips at the same time either way."""
+    from experiments.run_batch import DISTURBANCE_SCENARIOS
+
+    fn, T, _, psi0 = DISTURBANCE_SCENARIOS["payload_shift"]
+    runs = {
+        fb: run_episode(EpisodeConfig(ControllerType.NIS_GATE, T, x0_psi_deg=psi0, disturbance=fn, fallback=fb), seed=1)
+        for fb in (False, True)
+    }
+    assert runs[False]["fallen"].any()
+    assert not runs[True]["fallen"].any()
+    assert abs(runs[True]["psi"]).max() < np.radians(15.0)
+    first_trip = {fb: df.loc[df["mode"] != "NORMAL", "t"].iloc[0] for fb, df in runs.items()}
+    assert first_trip[False] == first_trip[True]
