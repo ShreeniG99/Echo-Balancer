@@ -119,7 +119,7 @@ def test_gate_mode_changes_the_control(scenarios_bin):
     """Section 10 gate -> control: NORMAL tracks the nominal speed ref, HALT commands 0
     while the robot keeps balancing (does not fall)."""
     ref = default_run_params().corridor_theta_dot_ref_nominal
-    d = _scenario(scenarios_bin, "gyro_bias", 1)
+    d = _scenario(scenarios_bin, "accel_noise", 1)
     t, mode, speed_ref = d[:, 0], d[:, 3], d[:, 8]
     assert np.allclose(speed_ref[mode == 0], ref)
     halt = mode == 2
@@ -127,3 +127,17 @@ def test_gate_mode_changes_the_control(scenarios_bin):
     assert d[:, 7].max() == 0, "HALT must keep balancing, not fall"
     # wheels actually follow the reference in NORMAL (true theta_dot, last 2 s before onset)
     assert abs(d[(t > 3) & (t < 5), 9].mean() - ref) < 0.5 * ref
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3, 4, 5])
+def test_payload_shift_is_detected_and_survived(scenarios_bin, seed):
+    """Payload shift (true plant M+1.0 kg, L+0.1 m, nominal KF): the nominal-model estimator
+    destabilises the loop, the gate trips before tilt reaches 1 deg, and the fallback
+    (softer gains + inflated KF Q, FallbackParams) keeps the robot upright."""
+    d = _scenario(scenarios_bin, "payload", seed)
+    t, mode = d[:, 0], d[:, 3]
+    hit = np.nonzero((mode > 0) & (t >= 5.0))[0]
+    assert len(hit) and t[hit[0]] - 5.0 < 1.0
+    assert abs(d[:hit[0] + 1, 5]).max() < np.deg2rad(1.0), "gate must trip before tilt is visible"
+    assert d[:, 7].max() == 0, "robot must not fall"
+    assert abs(d[:, 5]).max() < np.deg2rad(15.0)

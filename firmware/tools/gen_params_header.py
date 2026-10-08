@@ -21,6 +21,7 @@ from sim.estimator import (
 from sim.params import (
     default_disturbance_params,
     default_estimator_params,
+    default_fallback_params,
     default_gate_params,
     default_lqr_balance_params,
     default_plant_params,
@@ -77,6 +78,7 @@ def main() -> None:
         f"static const double ECHO_GYRO_BIAS_STEP = {dp.gyro_bias_fault_magnitude!r};  // rad/s",
         f"static const double ECHO_ACCEL_NOISE_MULT = {dp.accel_noise_fault_multiplier!r};",
         f"static const double ECHO_SPEED_REF_NOMINAL = {rp.corridor_theta_dot_ref_nominal!r};  // rad/s wheel-speed reference in NORMAL",
+        f"static const double ECHO_FALLBACK_Q_SCALE = {default_fallback_params().q_inflation!r};  // KF Q multiplier outside NORMAL",
         "// Row-major.  x = [theta, psi, theta_dot, psi_dot, b_g]; y = [theta_enc, psi_dot_gyro, psi_acc]",
         arr("ECHO_AD", Ad),
         arr("ECHO_BD", Bd),

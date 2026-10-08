@@ -4,7 +4,7 @@ You need: a web browser. A free wokwi.com account is optional for this.
 
 ## A. Create the project
 1. Go to https://wokwi.com and click **Start from scratch** (or "New Project").
-2. Choose **ESP32**, then **Arduino-ESP32** (a plain blank sketch).
+2. Choose **ESP32-S3**, then **Arduino-ESP32** (a plain blank sketch).
 3. You now see tabs: `sketch.ino`, `diagram.json`, and a "Library Manager". Leave this window open.
 
 ## B. Add the code files
@@ -27,7 +27,7 @@ Click inside the serial monitor box, then type one letter (no Enter needed on mo
 10. `g` -> gyro bias fault. Within ~0.5 s the LED goes yellow, then **red** and the buzzer beeps. Type `g` again to switch off, `r` to clear all.
 11. `a` -> accel noise x5: goes red within ~0.2 s. `r` to clear. (Note `nis_mode` vs `tilt_mode` columns: the tilt gate stays NORMAL, ours reacts.)
 12. `p` -> a push. Honest expectation: probably **no** mode change (known limit).
-13. `m` -> payload shift: goes red, `fallen` becomes 1. `r` to clear.
+13. `m` -> payload shift: goes red/yellow, but `fallen` stays 0 and `psi_deg` stays under ~7 degrees (the fallback keeps it upright). `r` to clear.
 14. Click the **MPU6050** part and drag its **accelerometer X** slider away from its start value: it counts as a sensor fault, LED goes red. Move it back and wait ~10 s to recover.
 15. Click the **KY-040** knob and turn it: encoder (wheel slip) offset.
 
@@ -36,4 +36,7 @@ Click inside the serial monitor box, then type one letter (no Enter needed on mo
 17. Click **Save** (needs the free login) and copy the project URL to cite in the report.
 
 ## F. Optional: run it locally (VS Code)
-Install VS Code, the PlatformIO and Wokwi extensions, open the `firmware/` folder, run `pio run`, then press F1 -> "Wokwi: Start Simulator" (free license via the prompt).
+Install VS Code, the PlatformIO and Wokwi extensions, open the `firmware/` folder, run `pio run` (board `esp32-s3-devkitc-1`), then press F1 -> "Wokwi: Start Simulator" (free license via the prompt).
+
+## If the S3 board part errors
+The diagram uses `wokwi-esp32-s3-devkitc-1` with pins named by GPIO number (`esp:8`, `esp:9`, `esp:4` ...). If Wokwi reports an unknown pin, send me the exact message; the pin map is in `firmware/README.md`.

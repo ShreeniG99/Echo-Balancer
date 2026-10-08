@@ -88,3 +88,6 @@ actually checking.
   walls, per §9's own "cut wall-following first if behind schedule" spirit)
   has nothing ahead to trigger it via a genuine head-on obstacle in the closed
   loop — only heading-drift-toward-a-side-wall exercises it indirectly.
+
+## 2026-10-08 — Python sim vs firmware fallback (confirmed divergence)
+Confirmed: `sim/run.py` HALT uses nominal K5 and no KF Q inflation; firmware uses cautious K5 + Q x100. Suspected (not tested): the Python nonlinear sim would show the same payload-shift benefit; porting the fallback to `sim/run.py` is needed before any paper claim that spans both. Also confirmed: 0.1 rad/s push is never detected in the firmware (0/10 seeds).

@@ -1,4 +1,4 @@
-// Echo Balancer -- Wokwi firmware: NIS confidence gate on an ESP32.
+// Echo Balancer -- Wokwi firmware: NIS confidence gate on an ESP32-S3.
 //
 // Runs the Kalman filter + NIS + NORMAL/CAUTIOUS/HALT gate (and the tilt
 // baseline gate) at 200 Hz. The "robot" is a virtual one (echo::VirtualRobot:
@@ -17,10 +17,10 @@
 #include "echo_core.hpp"
 
 // ---- Pin map (matches firmware/diagram.json) ------------------------------
-static const int PIN_SDA = 21, PIN_SCL = 22;
-static const int PIN_LED_NORMAL = 25, PIN_LED_CAUTIOUS = 26, PIN_LED_HALT = 27;
-static const int PIN_BUZZER = 14;
-static const int PIN_ENC_CLK = 18, PIN_ENC_DT = 19;
+static const int PIN_SDA = 8, PIN_SCL = 9;  // ESP32-S3 default I2C0
+static const int PIN_LED_NORMAL = 4, PIN_LED_CAUTIOUS = 5, PIN_LED_HALT = 6;
+static const int PIN_BUZZER = 7;
+static const int PIN_ENC_CLK = 15, PIN_ENC_DT = 16;
 
 // ---- MPU6050 (the MPU6050 half of the GY-87) ------------------------------
 static const uint8_t MPU_ADDR = 0x68, MPU_PWR_MGMT_1 = 0x6B, MPU_ACCEL_XOUT_H = 0x3B;

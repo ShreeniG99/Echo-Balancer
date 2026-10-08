@@ -414,3 +414,24 @@ def default_speed_servo_params_cautious() -> SpeedServoParams:
     "Design decision 5" for the full pole comparison.
     """
     return SpeedServoParams(Q_theta=0.2, Q_psi=200.0, Q_theta_dot=0.2, Q_psi_dot=0.2, Q_integral=2.0, R=1e2)
+
+
+@dataclass(frozen=True)
+class FallbackParams:
+    """Estimator behaviour once the NIS gate leaves NORMAL (firmware).
+
+    The KF always uses the nominal model (CLAUDE.md section 8), so under a
+    plant mismatch such as the payload shift its estimate-based feedback
+    loop goes unstable even though true-state feedback is stable. On leaving
+    NORMAL the KF process noise Q is multiplied by q_inflation so it trusts
+    the sensors over its (now wrong) model. Empirical: x10 recovers (max
+    |psi| ~9.7 deg), x100 recovers (~6.9 deg), x1000 and above overshoot and
+    fall -- see firmware/README.md. Used by firmware only; sim/run.py does
+    not apply it yet.
+    """
+
+    q_inflation: float
+
+
+def default_fallback_params() -> FallbackParams:
+    return FallbackParams(q_inflation=100.0)

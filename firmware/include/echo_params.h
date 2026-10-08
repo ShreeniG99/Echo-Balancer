@@ -24,6 +24,7 @@ static const double ECHO_PUSH_KICK = 0.1;  // rad/s psi_dot kick
 static const double ECHO_GYRO_BIAS_STEP = 0.05;  // rad/s
 static const double ECHO_ACCEL_NOISE_MULT = 5.0;
 static const double ECHO_SPEED_REF_NOMINAL = 0.3;  // rad/s wheel-speed reference in NORMAL
+static const double ECHO_FALLBACK_Q_SCALE = 100.0;  // KF Q multiplier outside NORMAL
 // Row-major.  x = [theta, psi, theta_dot, psi_dot, b_g]; y = [theta_enc, psi_dot_gyro, psi_acc]
 static const double ECHO_AD[25] = {1, -0.0033805431039577909, 0.0035893013138028683, 0.001404457403861505, 0, 0, 1.0025315884032229, 0.00068011121046463959, 0.0043244004439597274, 0, 0, -1.0919227229836423, 0.52783408476605143, 0.46878537212999133, 0, 0, 0.88732250043257888, 0.22768554168137237, 0.77484604672185031, 0, 0, 0, 0, 0, 1};
 static const double ECHO_BD[5] = {0.0013711305405045896, -0.00066103503230831068, 0.45892231480543144, -0.22129927736179625, 0};
