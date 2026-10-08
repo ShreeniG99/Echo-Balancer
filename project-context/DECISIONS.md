@@ -377,3 +377,6 @@ Binary candidate index makes an arbitrary cost table a degree-n polynomial (HUBO
 
 ## 2026-10-08 — qiskit pinned: qiskit 2.5.2, qiskit-optimization 0.7.0, qiskit-aer 0.17.2
 `GroverOptimizer` works on qiskit 2.x only with an Aer `SamplerV2` **plus a pass_manager** (without it the sampler job fails). Oracle calls are counted by wrapping `Grover.construct_circuit` (sum of Grover powers); `result.operation_counts` is per-round gate counts, not oracle calls.
+
+## 2026-10-08 — Side-ultrasonic dropout rejection (`sim.sensors.hold_on_dropout`)
+Root cause of nominal corridor falls (pre-existing since step 5/6: 60 s nominal corridor runs fell in 2/10 naive, 2/10 NIS, 5/10 tilt seeds): a 2% dropout returns max range (4 m), stepping the wall error by ~3.5 m; the wall-following D-term turns that into ~-35 rad/s yaw-rate ref and saturates the differential drive (+/-7.4 V), kicking the heading each time until the robot faces a wall and loses balance. Fix: hold the last valid side reading on a max-range reading (rng call order unchanged). After: 0/30 falls, max |phi| 20 deg, tilt gate's corridor false fallback 17.6% -> 0. `test_cautious_mode_scales_down_corridor_speed_reference` relied on these kicks to trip CAUTIOUS; rewritten to force CAUTIOUS with a GateParams override.

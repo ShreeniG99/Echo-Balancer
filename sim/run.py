@@ -101,7 +101,7 @@ from sim.params import (
     default_yaw_control_params,
 )
 from sim.plant import f as plant_f
-from sim.sensors import accelerometer, encoder, gyro, ultrasonic
+from sim.sensors import accelerometer, encoder, gyro, hold_on_dropout, ultrasonic
 from sim.world import cast_ray, pose_velocity
 
 DisturbanceFn = Callable[
@@ -184,6 +184,7 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
     prev_wall_err = 0.0
     front_reading = sensor_p.ultrasonic_range_max
     right_reading = sensor_p.ultrasonic_range_max
+    right_valid: float | None = None  # last non-dropout side reading (sim.sensors.hold_on_dropout)
 
     rows = []
 
@@ -231,8 +232,9 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
                 true_right = cast_ray(pos[0], pos[1], heading - np.pi / 2, corridor_p, 0.02, 4.0)
                 true_front = cast_ray(pos[0], pos[1], heading, corridor_p, 0.02, 4.0)
                 right_reading = ultrasonic(true_right, sensor_p, rng)
+                right_valid = hold_on_dropout(right_reading, right_valid, sensor_p)
                 front_reading = ultrasonic(true_front, sensor_p, rng)
-                wall_err = wall_p.target_distance - right_reading
+                wall_err = wall_p.target_distance - right_valid
                 phi_dot_ref, prev_wall_err = wall_following_control(
                     wall_err, prev_wall_err, 1.0 / sensor_p.ultrasonic_rate_hz, wall_p
                 )
