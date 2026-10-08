@@ -90,11 +90,13 @@ def fig_detection(table: pd.DataFrame, path: Path) -> None:
 def fig_sensitivity(cost: pd.DataFrame, path: Path) -> None:
     """Threshold sensitivity (section 12): metrics over tau1 x tau2 levels, one row per (N, T_dwell)."""
     qp = default_qubo_params()
-    metrics = [("J", "Cost J (lower is better)"), ("false_fallback", "False-fallback fraction"),
-               ("fall_rate", "Fall rate"), ("detection_rate", "Detection rate")]
+    cost = cost.copy()
+    cost["J_detect"] = cost["J"] + qp.w_detect_variant * (1.0 - cost["detection_rate"])
+    metrics = [("J", "Spec cost J (lower is better)"), ("false_fallback", "False-fallback fraction"),
+               ("detection_rate", "Detection rate"), ("J_detect", "Variant: J + (1 - detection)")]
     combos = [(N, T) for N in qp.N_values for T in qp.T_dwell_values]
     fig, axes = plt.subplots(len(combos), len(metrics), figsize=(12, 2.6 * len(combos)))
-    best = cost.loc[cost["J"].idxmin()]
+    best = {m: set(cost.loc[np.isclose(cost[m], cost[m].min()), "index"]) for m in ("J", "J_detect")}
     for r, (N, T) in enumerate(combos):
         sub = cost[(cost.N == N) & (cost.T_dwell == T)]
         for c, (m, title) in enumerate(metrics):
@@ -103,13 +105,14 @@ def fig_sensitivity(cost: pd.DataFrame, path: Path) -> None:
             vmax = np.nanmax(cost[m]) if np.nanmax(cost[m]) > 0 else 1.0
             ax.imshow(grid.to_numpy(dtype=float), cmap="Blues", vmin=0, vmax=vmax, aspect="auto")
             for (i, j), v in np.ndenumerate(grid.to_numpy(dtype=float)):
-                txt = "infeasible" if np.isnan(v) else f"{v:.2f}"
+                txt = "infeasible" if np.isnan(v) else f"{v:.3f}"
                 dark = (not np.isnan(v)) and v > 0.6 * vmax
                 ax.text(j, i, txt, ha="center", va="center", fontsize=6.5 if not np.isnan(v) else 5.5,
                         color="white" if dark else (MUTED if np.isnan(v) else INK))
-                if m == "J" and not np.isnan(v) and (N, T, grid.index[i], grid.columns[j]) == (
-                        best.N, best.T_dwell, best.tau2_level, best.tau1_level):
-                    ax.add_patch(plt.Rectangle((j - 0.5, i - 0.5), 1, 1, fill=False, ec=INK, lw=2))
+                if m in best and not np.isnan(v):
+                    idx = sub[(sub.tau2_level == grid.index[i]) & (sub.tau1_level == grid.columns[j])]["index"].iloc[0]
+                    if idx in best[m]:
+                        ax.add_patch(plt.Rectangle((j - 0.45, i - 0.45), 0.9, 0.9, fill=False, ec=INK, lw=1.8))
             ax.set_xticks(range(len(grid.columns)), [f"{v:g}" for v in grid.columns], fontsize=7)
             ax.set_yticks(range(len(grid.index)), [f"{v:g}" for v in grid.index], fontsize=7)
             if r == len(combos) - 1:
@@ -118,7 +121,8 @@ def fig_sensitivity(cost: pd.DataFrame, path: Path) -> None:
                 ax.set_ylabel(f"N={N}, T_dwell={T:g}s\ntau2 / N", fontsize=7, color=MUTED)
             if r == 0:
                 ax.set_title(title, loc="left", fontsize=9, color=INK)
-    fig.suptitle("Threshold sensitivity (re-simulated per candidate; outlined = min-J candidate)", fontsize=10, x=0.01, ha="left")
+    fig.suptitle("Threshold sensitivity, re-simulated per candidate. Outlined = optimal (all ties). "
+                 "Fall rate 0 and progress 1.0 for every candidate (not shown).", fontsize=10, x=0.01, ha="left")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)

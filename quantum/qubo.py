@@ -13,12 +13,14 @@ Grover's value register small); infeasible codes (tau1 >= tau2) get rank =
 polynomial (a HUBO) is reduced to a QUBO with Rosenberg substitution, and
 every QUBO is brute-force verified to decode to the true argmin.
 
-Qubit budget: the full 6-bit QUBO needs 18 binary variables plus the value
-register (~34 qubits), beyond statevector simulation here. Grover is
-therefore run on the sub-grids that fit (tau1 x tau2 at fixed N, T_dwell:
-4 bits; tau1 x tau2 x N at fixed T_dwell: 5 bits), with fixed values taken
-from the default gate, and compared against exhaustive search on the same
-sub-grid.
+Qubit budget: a *random* 6-bit table needs 18 QUBO variables + ~16 value
+qubits (~34, not simulable here), but the real cost tables are structured
+(J depends mostly on the tau1 level and N), so their HUBOs have low degree
+and the full 6-bit QUBO needs only 9 variables + 10 value qubits = 19 qubits.
+Grover therefore runs on the full 64-candidate problem and, for comparison,
+on the 5-bit (tau1 x tau2 x N) and 4-bit (tau1 x tau2) sub-grids at the
+default gate's T_dwell / N. Optimal sets are often large (ties), which makes
+the search easy -- the report lists each instance's optimal-set size.
 
 Usage: PYTHONPATH=. uv run python -m quantum.qubo   (needs the cost table)
 """
@@ -163,10 +165,10 @@ def main() -> None:
     nbit = qp.N_values.index(gd.N)
     tbit = qp.T_dwell_values.index(gd.T_dwell)
     instances = [  # (name, fixed index bits, run Grover?, cost column)
-        ("full_6bit", {}, False, "J"),                        # formulation + qubit count only (too many qubits)
+        ("full_6bit", {}, True, "J"),
         ("tau1_tau2_N_5bit", {5: tbit}, True, "J"),
         ("tau1_tau2_4bit", {4: nbit, 5: tbit}, True, "J"),
-        ("full_6bit_detect", {}, False, "J_detect"),
+        ("full_6bit_detect", {}, True, "J_detect"),
         ("tau1_tau2_N_5bit_detect", {5: tbit}, True, "J_detect"),
     ]
     report = []

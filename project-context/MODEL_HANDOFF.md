@@ -1,10 +1,23 @@
 # Model Handoff — Echo Balancer
 
-**Read this first.** It's the short version of everything else in
-`project-context/`. Follow the links only when you need more depth on a specific
-point. Last updated: 2026-09-22, commit `0d29d83` on branch
-`step6-run-batch-metrics` (worktree `.worktrees/step6-run-batch-metrics`, off
-`master`'s `96f914b`), plus this session's `project-context/` update.
+**Read this first.** Last updated: 2026-10-08, branch `claude/funny-noether-0b1r6a`.
+The "2026-10-08 state" section below supersedes anything older further down; the older text is kept for history.
+
+## 2026-10-08 state (supersedes older sections)
+
+- **All 8 build-order steps are done.** Steps 7 (`quantum/`) and 8 (`analysis/plots.py`, `analysis/animate.py`) landed this session. Results write-up: **`docs/RESULTS.md`**. Tests: 174 pass (`PYTHONPATH=. uv run pytest`).
+- **Firmware:** `firmware/` holds Wokwi ESP32-S3 firmware running the KF + NIS + both gates against a virtual linear robot. Constants are generated from `sim/params.py`. The user confirmed it runs in Wokwi.
+- **Fallback (default on, `EpisodeConfig.fallback`):** outside NORMAL, KF Q ×100 (`FallbackParams`) and HALT on the cautious gains. Payload-shift falls go 5/10 → 0/10 for both gates. This supersedes the old "HALT uses nominal gain" decision.
+- **Corridor falls fixed:** the old "~20 % nominal corridor fall rate" (below) is RESOLVED. Ultrasonic dropouts were kicking the wall-following D-term; `sim.sensors.hold_on_dropout` fixes it (0/30 falls).
+- **Threshold selection:** `quantum/cost_table.py` re-simulates 60 candidates (grid v2; v1 was flat). `quantum/formulation.py` builds the exact HUBO, reduces it to a Rosenberg QUBO, and brute-force verifies it. `quantum/qubo.py` compares exhaustive search with GroverOptimizer (qiskit 2.5.2 / opt 0.7.0 / aer 0.17.2).
+  - Spec J: 28/60 tied optima (default included); Grover 15/15.
+  - Labelled variant J_detect: 4 optima; Grover 6/10 (near-misses).
+  - No speedup claimed.
+- **Next steps, if any:**
+  1. Real hardware parameters (6.2).
+  2. Decide whether section 13's J should include detection (ask the user; don't silently change the spec).
+  3. Cap yaw authority vs balance.
+  4. Battery-droop and push detection.
 
 ## What this project is (one paragraph)
 
