@@ -293,3 +293,6 @@ step if quantum work is deferred further.
   gate, `run.py` balance-only path, `run.py` corridor path, `metrics.py`,
   `run_batch.py`) plus this task's docs commit are the full history added on
   top of `master`'s `96f914b` in this worktree/branch.
+
+## 2026-10-08 — Wokwi firmware (extra, off the §14 build order)
+`firmware/` (PlatformIO + `diagram.json` + `wokwi.toml`): ESP32 runs KF+NIS+gates at 200 Hz against a virtual linear robot; faults via MPU6050 sliders, KY-040 knob, serial keys. Host-verified vs Python (`tests/test_firmware_core.py`, 14 tests; full suite 140 pass). **Not yet built for ESP32 or run in Wokwi** (sandbox blocks PlatformIO/Wokwi); `main.cpp` only syntax-checked against stubs, `diagram.json` pin names unverified. See `firmware/README.md`. Steps 7 (qubo) and 8 (plots/animate) remain next.

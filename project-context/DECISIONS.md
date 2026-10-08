@@ -362,3 +362,6 @@ source actually states them — no speculation.
 - **Alternatives considered:** none seriously — this is the correct general pattern (workers should never depend on mutable global state across a process boundary); dropping to `n_jobs=1`/threading to sidestep the issue was explicitly rejected as it would defeat the purpose of using joblib at all.
 - **Date:** 2026-09-22.
 - **Still current:** Yes. **If porting this codebase to a POSIX system where `fork` is available, do not "simplify" this back to a worker-side lookup** — the bug is latent on fork-based systems too (it just doesn't manifest, since fork *does* inherit parent memory), and would resurface the moment anyone runs on spawn-only Windows again.
+
+## 2026-10-08 — Wokwi firmware lives in `firmware/` (user-approved scope addition)
+Wokwi isn't in CLAUDE.md's stack/layout; the user explicitly approved adding a C++/PlatformIO `firmware/` dir. Scope = **the gate on ESP32** (KF + NIS + both gates), not balancing or wall-following. Reason: Wokwi has no physics, so the robot is a virtual linear plant inside the firmware (a still-sensor Wokwi setup trips the gate by itself because the KF predicts LQR corrections that never appear in the sensors — tried first, rejected). All numerics come from `sim/params.py` via `firmware/tools/gen_params_header.py`; `tests/test_firmware_core.py` pins C++ == Python.
