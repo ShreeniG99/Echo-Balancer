@@ -4,7 +4,7 @@
   "editor": "wokwi",
   "parts": [
     {
-      "type": "wokwi-esp32-s3-devkitc-1",
+      "type": "board-esp32-s3-devkitc-1",
       "id": "esp",
       "top": 0,
       "left": 0,
@@ -13,15 +13,15 @@
     {
       "type": "wokwi-mpu6050",
       "id": "imu",
-      "top": -120,
-      "left": 160,
+      "top": -140,
+      "left": 260,
       "attrs": {}
     },
     {
       "type": "wokwi-led",
       "id": "led_n",
-      "top": 200,
-      "left": 240,
+      "top": 230,
+      "left": 0,
       "attrs": {
         "color": "green"
       }
@@ -29,8 +29,8 @@
     {
       "type": "wokwi-led",
       "id": "led_c",
-      "top": 200,
-      "left": 290,
+      "top": 280,
+      "left": 0,
       "attrs": {
         "color": "yellow"
       }
@@ -38,8 +38,8 @@
     {
       "type": "wokwi-led",
       "id": "led_h",
-      "top": 200,
-      "left": 340,
+      "top": 330,
+      "left": 0,
       "attrs": {
         "color": "red"
       }
@@ -47,8 +47,8 @@
     {
       "type": "wokwi-resistor",
       "id": "r_n",
-      "top": 260,
-      "left": 230,
+      "top": 215,
+      "left": 60,
       "attrs": {
         "value": "220"
       }
@@ -56,8 +56,8 @@
     {
       "type": "wokwi-resistor",
       "id": "r_c",
-      "top": 260,
-      "left": 280,
+      "top": 265,
+      "left": 60,
       "attrs": {
         "value": "220"
       }
@@ -65,8 +65,8 @@
     {
       "type": "wokwi-resistor",
       "id": "r_h",
-      "top": 260,
-      "left": 330,
+      "top": 315,
+      "left": 60,
       "attrs": {
         "value": "220"
       }
@@ -74,8 +74,8 @@
     {
       "type": "wokwi-buzzer",
       "id": "bz",
-      "top": 100,
-      "left": 360,
+      "top": 400,
+      "left": 0,
       "attrs": {
         "volume": "0.1"
       }
@@ -83,12 +83,22 @@
     {
       "type": "wokwi-ky-040",
       "id": "enc",
-      "top": -120,
-      "left": 380,
+      "top": -140,
+      "left": 420,
       "attrs": {}
     }
   ],
   "connections": [
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      ""
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      ""
+    ],
     [
       "imu:VCC",
       "esp:3V3.1",
@@ -139,7 +149,7 @@
     ],
     [
       "led_n:C",
-      "esp:GND.2",
+      "esp:GND.1",
       "black",
       [
         "v0"
@@ -163,7 +173,7 @@
     ],
     [
       "led_c:C",
-      "esp:GND.2",
+      "esp:GND.1",
       "black",
       [
         "v0"
@@ -187,7 +197,7 @@
     ],
     [
       "led_h:C",
-      "esp:GND.2",
+      "esp:GND.1",
       "black",
       [
         "v0"
@@ -203,7 +213,7 @@
     ],
     [
       "bz:1",
-      "esp:GND.2",
+      "esp:GND.1",
       "black",
       [
         "v0"

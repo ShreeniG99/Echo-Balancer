@@ -39,4 +39,4 @@ Click inside the serial monitor box, then type one letter (no Enter needed on mo
 Install VS Code, the PlatformIO and Wokwi extensions, open the `firmware/` folder, run `pio run` (board `esp32-s3-devkitc-1`), then press F1 -> "Wokwi: Start Simulator" (free license via the prompt).
 
 ## If the S3 board part errors
-The diagram uses `wokwi-esp32-s3-devkitc-1` with pins named by GPIO number (`esp:8`, `esp:9`, `esp:4` ...). If Wokwi reports an unknown pin, send me the exact message; the pin map is in `firmware/README.md`.
+The diagram uses `board-esp32-s3-devkitc-1` with pins named by GPIO number (`esp:8`, `esp:9`, `esp:4` ...). If Wokwi reports an unknown pin, send me the exact message; the pin map is in `firmware/README.md`.
