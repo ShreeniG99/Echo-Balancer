@@ -23,6 +23,7 @@ from sim.run import ControllerType, EpisodeConfig, run_episode
 
 RESULTS = Path(__file__).resolve().parents[1] / "experiments" / "results"
 TABLE_PATH = RESULTS / "qubo_cost_table.parquet"
+EPISODES_PATH = RESULTS / "qubo_cost_episodes.parquet"  # per-episode rows: re-score without re-simulating
 N_BITS = 6
 
 
@@ -63,10 +64,12 @@ def _episode(controller, gate_p, scen, seed) -> dict:
 
 
 def score(rows: pd.DataFrame, naive_distance: float, qp: QuboParams) -> dict:
+    """fall_rate counts falls over the WHOLE evaluation set (nominal episodes included: a gate
+    action can itself destabilise a nominal corridor run)."""
     dist = rows[rows["scenario"] != "nominal"]
     nominal = rows[rows["scenario"] == "nominal"]
     corridor = nominal[nominal["wall_following"]]
-    fall_rate = float(dist["fell"].mean())
+    fall_rate = float(rows["fell"].mean())
     false_fb = float(nominal["frac_non_normal"].mean())
     progress = float(np.clip(corridor["distance_m"].mean() / naive_distance, 0.0, 1.0))
     return {
@@ -76,7 +79,8 @@ def score(rows: pd.DataFrame, naive_distance: float, qp: QuboParams) -> dict:
     }
 
 
-def build_cost_table(qp: QuboParams | None = None, n_jobs: int = -1) -> pd.DataFrame:
+def simulate_rows(qp: QuboParams | None = None, n_jobs: int = -1) -> pd.DataFrame:
+    """Re-simulate every feasible candidate (plus the naive corridor reference) -> one row per episode."""
     qp = qp or default_qubo_params()
     cands = [decode(i, qp) for i in range(2**N_BITS)]
     feas = [c for c in cands if c["feasible"]]
@@ -88,6 +92,12 @@ def build_cost_table(qp: QuboParams | None = None, n_jobs: int = -1) -> pd.DataF
     out = Parallel(n_jobs=n_jobs, verbose=5)(delayed(_episode)(ctl, gp, s, seed) for ctl, gp, s, seed, _ in jobs)
     rows = pd.DataFrame(out)
     rows["index"] = [j[4] for j in jobs]
+    return rows
+
+
+def table_from_rows(rows: pd.DataFrame, qp: QuboParams | None = None) -> pd.DataFrame:
+    qp = qp or default_qubo_params()
+    cands = [decode(i, qp) for i in range(2**N_BITS)]
     naive_distance = rows.loc[rows["index"] == -1, "distance_m"].mean()
     table = []
     for c in cands:
@@ -101,7 +111,9 @@ def build_cost_table(qp: QuboParams | None = None, n_jobs: int = -1) -> pd.DataF
 
 def main() -> None:
     RESULTS.mkdir(parents=True, exist_ok=True)
-    table = build_cost_table()
+    rows = simulate_rows()
+    rows.to_parquet(EPISODES_PATH)
+    table = table_from_rows(rows)
     table.to_parquet(TABLE_PATH)
     out = Path(__file__).resolve().parents[1] / "docs" / "results"
     out.mkdir(parents=True, exist_ok=True)

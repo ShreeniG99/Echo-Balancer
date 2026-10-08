@@ -111,36 +111,45 @@ def run_grover(built: dict, seed: int, iterations: int) -> dict:
     }
 
 
-def sub_table(table: pd.DataFrame, fixed_bits: dict[int, int]) -> tuple[np.ndarray, np.ndarray]:
-    """Slice the full table at fixed high bits -> (J sub-table, full indices)."""
+def sub_table(table: pd.DataFrame, fixed_bits: dict[int, int], col: str = "J") -> tuple[np.ndarray, np.ndarray]:
+    """Slice the full table at fixed high bits -> (cost sub-table, full indices)."""
     keep = [i for i in range(2**N_BITS) if all(((i >> b) & 1) == v for b, v in fixed_bits.items())]
     sub = table.set_index("index").loc[keep]
-    return sub["J"].to_numpy(dtype=float), np.array(keep)
+    return sub[col].to_numpy(dtype=float), np.array(keep)
 
 
-def solve_instance(name: str, table: pd.DataFrame, fixed_bits: dict[int, int], run_q: bool) -> dict:
+def with_detection_variant(table: pd.DataFrame) -> pd.DataFrame:
+    """Adds J_detect = J + w_detect_variant * (1 - detection_rate). NOT the spec J (see QuboParams)."""
+    t = table.copy()
+    t["J_detect"] = t["J"] + default_qubo_params().w_detect_variant * (1.0 - t["detection_rate"])
+    return t
+
+
+def solve_instance(name: str, table: pd.DataFrame, fixed_bits: dict[int, int], run_q: bool, col: str = "J") -> dict:
     qp = default_qubo_params()
-    J, full_idx = sub_table(table, fixed_bits)
+    J, full_idx = sub_table(table, fixed_bits, col)
     t = time.perf_counter()
     feas = ~np.isnan(J)
     classical_local = int(np.nanargmin(J))
     classical_s = time.perf_counter() - t
     built = build_qubo(J)
     out = {
-        "instance": name, "candidates": int(J.size), "feasible": int(feas.sum()),
+        "instance": name, "cost": col, "candidates": int(J.size), "feasible": int(feas.sum()),
+        "distinct_costs": int(np.unique(J[feas]).size),
+        "optimal_set": [int(i) for i in full_idx[np.isclose(J, np.nanmin(J))]],
         "classical_optimum_index": int(full_idx[classical_local]), "classical_J": float(J[classical_local]),
         "classical_evaluations": int(feas.sum()), "classical_s": classical_s,
         "qubo_vars": built["n_vars"], "qubo_aux_vars": built["n_aux"], "value_qubits": built["value_qubits"],
         "total_qubits": built["n_vars"] + built["value_qubits"],
         "qubo_brute_force_index": int(full_idx[built["brute_force_qubo_index"]]),
-        "qubo_exact": bool(built["brute_force_qubo_index"] == classical_local),
+        "qubo_exact": bool(np.isclose(J[built["brute_force_qubo_index"]], J[classical_local])),
         "grover_runs": [],
     }
     if run_q:
         for seed in qp.grover_seeds:
             r = run_grover(built, seed, qp.grover_iterations)
             r["index"] = int(full_idx[r["index"]])
-            r["J"] = float(table.set_index("index").loc[r["index"], "J"])
+            r["J"] = float(table.set_index("index").loc[r["index"], col])
             r["same_optimum"] = bool(np.isclose(r["J"], out["classical_J"]))
             out["grover_runs"].append(r)
             print(f"  {name} grover seed {seed}: index {r['index']} same_optimum={r['same_optimum']} "
@@ -149,26 +158,29 @@ def solve_instance(name: str, table: pd.DataFrame, fixed_bits: dict[int, int], r
 
 
 def main() -> None:
-    table = pd.read_parquet(TABLE_PATH)
+    table = with_detection_variant(pd.read_parquet(TABLE_PATH))
     qp, gd = default_qubo_params(), default_gate_params()
     nbit = qp.N_values.index(gd.N)
     tbit = qp.T_dwell_values.index(gd.T_dwell)
-    instances = [
-        ("full_6bit", {}, False),                             # formulation + qubit count only
-        ("tau1_tau2_N_5bit", {5: tbit}, True),
-        ("tau1_tau2_4bit", {4: nbit, 5: tbit}, True),
+    instances = [  # (name, fixed index bits, run Grover?, cost column)
+        ("full_6bit", {}, False, "J"),                        # formulation + qubit count only (too many qubits)
+        ("tau1_tau2_N_5bit", {5: tbit}, True, "J"),
+        ("tau1_tau2_4bit", {4: nbit, 5: tbit}, True, "J"),
+        ("full_6bit_detect", {}, False, "J_detect"),
+        ("tau1_tau2_N_5bit_detect", {5: tbit}, True, "J_detect"),
     ]
     report = []
-    for name, fixed, run_q in instances:
+    for name, fixed, run_q, col in instances:
         print(f"instance {name}", flush=True)
-        report.append(solve_instance(name, table, fixed, run_q))
+        report.append(solve_instance(name, table, fixed, run_q, col))
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / "qubo_report.json").write_text(json.dumps(report, indent=2))
     rows = []
     for r in report:
         g = r["grover_runs"]
         rows.append({
-            "instance": r["instance"], "candidates": r["candidates"], "feasible": r["feasible"],
+            "instance": r["instance"], "cost": r["cost"], "candidates": r["candidates"], "feasible": r["feasible"],
+            "distinct_costs": r["distinct_costs"], "optimal_set_size": len(r["optimal_set"]),
             "classical_optimum": r["classical_optimum_index"], "QUBO_exact": r["qubo_exact"],
             "qubo_vars": r["qubo_vars"], "total_qubits": r["total_qubits"],
             "grover_same_optimum": f"{sum(x['same_optimum'] for x in g)}/{len(g)}" if g else "not run (qubits)",

@@ -67,3 +67,23 @@ def test_grover_optimizer_finds_optimum_on_tiny_instance():
     r = run_grover(built, seed=0, iterations=6)
     assert r["index"] == 4
     assert r["oracle_calls"] >= 0
+
+
+def test_score_counts_falls_in_nominal_episodes_too():
+    """A gate action can destabilise a nominal corridor run; that fall must reach J."""
+    import pandas as pd
+
+    from quantum.cost_table import score
+
+    rows = pd.DataFrame([
+        {"scenario": "nominal", "wall_following": True, "fell": True, "frac_non_normal": 0.1, "distance_m": 0.2, "detected": True},
+        {"scenario": "nominal", "wall_following": False, "fell": False, "frac_non_normal": 0.0, "distance_m": 0.0, "detected": False},
+        {"scenario": "push", "wall_following": False, "fell": False, "frac_non_normal": 0.0, "distance_m": 0.0, "detected": False},
+        {"scenario": "push", "wall_following": False, "fell": False, "frac_non_normal": 0.3, "distance_m": 0.0, "detected": True},
+    ])
+    qp = default_qubo_params()
+    s = score(rows, naive_distance=0.4, qp=qp)
+    assert s["fall_rate"] == pytest.approx(0.25)
+    assert s["progress"] == pytest.approx(0.5)
+    assert s["detection_rate"] == pytest.approx(0.5)
+    assert s["J"] == pytest.approx(qp.w_fall * 0.25 + qp.w_false * 0.05 + qp.w_progress * 0.5)

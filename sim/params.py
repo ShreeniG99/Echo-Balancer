@@ -466,6 +466,9 @@ class QuboParams:
     nominal_T: float     # s, nominal balance + corridor episode length
     grover_seeds: tuple[int, ...]  # independent GroverOptimizer runs (it is stochastic)
     grover_iterations: int         # GroverOptimizer num_iterations (no-improvement patience)
+    w_detect_variant: float        # NOT the spec J: weight of (1 - detection_rate) in the labelled
+                                   # "detection-weighted" variant, reported because the spec J ties
+                                   # (falls are 0 for every candidate once the fallback is on)
 
 
 def default_qubo_params() -> QuboParams:
@@ -482,4 +485,5 @@ def default_qubo_params() -> QuboParams:
         nominal_T=30.0,
         grover_seeds=(0, 1, 2, 3, 4),
         grover_iterations=8,
+        w_detect_variant=1.0,
     )
