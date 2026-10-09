@@ -1,0 +1,6 @@
+instance,cost,candidates,feasible,distinct_costs,optimal_set_size,classical_optimum,QUBO_exact,qubo_vars,total_qubits,grover_same_optimum,grover_mean_oracle_calls,grover_mean_wall_s,classical_evaluations
+full_6bit,J,64,60,8,28,2,True,9,19,5/5,17.8,8.237,60
+tau1_tau2_N_5bit,J,32,30,5,14,34,True,7,16,5/5,13.8,1.313,30
+tau1_tau2_4bit,J,16,15,3,7,50,True,6,15,5/5,16.2,0.9961,15
+full_6bit_detect,J_detect,64,60,10,4,1,True,10,20,2/5,19.4,18.97,60
+tau1_tau2_N_5bit_detect,J_detect,32,30,7,4,33,True,8,17,4/5,18.6,3.249,30

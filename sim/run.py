@@ -82,18 +82,16 @@ from sim.gate import (
 )
 from sim.integrate import rk4_step
 from sim.params import (
+    param_set,
     GateParams,
     PlantParams,
     SensorParams,
     default_corridor_params,
-    default_disturbance_params,
     default_estimator_params,
     default_fallback_params,
     default_gate_params,
     default_lqr_balance_params,
-    default_plant_params,
     default_run_params,
-    default_sensor_params,
     default_speed_servo_params,
     default_speed_servo_params_cautious,
     default_tilt_gate_params,
@@ -130,18 +128,19 @@ class EpisodeConfig:
     disturbance: Optional[DisturbanceFn] = None
     disturbance_name: str = "none"            # label only, for experiments/run_batch.py's output
     gate_params: Optional[GateParams] = None  # NIS-gate override (threshold selection re-simulates with this); None = default_gate_params()
+    param_set: str = "sim_v0"                # CLAUDE.md 6.2: "sim_v0" (NXTway-GS) or "hardware_v1" (see sim.params.param_set)
     fallback: bool = True                     # outside NORMAL: KF Q x FallbackParams.q_inflation, HALT on the softer gain set (see FallbackParams)
 
 
 def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
-    p = default_plant_params()
-    sensor_p = default_sensor_params()
+    ps = param_set(config.param_set)
+    p = ps.plant
+    sensor_p = ps.sensor
     est_p = default_estimator_params()
     lqr_p = default_lqr_balance_params()
     gate_p = config.gate_params if config.gate_params is not None else default_gate_params()
     tilt_gate_p = default_tilt_gate_params()
     run_p = default_run_params()
-    dp = default_disturbance_params()
 
     K4 = design_lqr_balance(p, lqr_p)
 
@@ -196,7 +195,7 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
                 t, x_true, b_g_true, p, sensor_p
             )
         else:
-            p_now, sensor_p_now, v_batt_now = p, sensor_p, dp.battery_droop_v_nominal
+            p_now, sensor_p_now, v_batt_now = p, sensor_p, ps.v_batt_nominal
 
         def xdotf(x, uu, pp=p_now):
             return plant_f(x, uu[0], uu[1], pp)

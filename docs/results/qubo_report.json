@@ -4,14 +4,10 @@
     "cost": "J",
     "candidates": 64,
     "feasible": 60,
-    "distinct_costs": 8,
+    "distinct_costs": 11,
     "optimal_set": [
-      2,
-      6,
       7,
-      10,
       11,
-      14,
       15,
       18,
       22,
@@ -20,12 +16,8 @@
       27,
       30,
       31,
-      34,
-      38,
       39,
-      42,
       43,
-      46,
       47,
       50,
       54,
@@ -35,77 +27,28 @@
       62,
       63
     ],
-    "classical_optimum_index": 2,
+    "classical_optimum_index": 7,
     "classical_J": 0.0,
     "classical_evaluations": 60,
-    "classical_s": 6.83250000292901e-05,
-    "qubo_vars": 9,
-    "qubo_aux_vars": 3,
-    "value_qubits": 10,
-    "total_qubits": 19,
-    "qubo_brute_force_index": 2,
+    "classical_s": 7.556899981864262e-05,
+    "qubo_vars": 18,
+    "qubo_aux_vars": 12,
+    "value_qubits": 11,
+    "total_qubits": 29,
+    "qubo_brute_force_index": 18,
     "qubo_exact": true,
-    "grover_runs": [
-      {
-        "seed": 0,
-        "index": 27,
-        "wall_s": 9.874927292999928,
-        "circuits_sampled": 21,
-        "oracle_calls": 21,
-        "J": 0.0,
-        "same_optimum": true
-      },
-      {
-        "seed": 1,
-        "index": 7,
-        "wall_s": 8.054891566000151,
-        "circuits_sampled": 21,
-        "oracle_calls": 14,
-        "J": 0.0,
-        "same_optimum": true
-      },
-      {
-        "seed": 2,
-        "index": 15,
-        "wall_s": 9.307958510999924,
-        "circuits_sampled": 17,
-        "oracle_calls": 22,
-        "J": 0.0,
-        "same_optimum": true
-      },
-      {
-        "seed": 3,
-        "index": 11,
-        "wall_s": 10.026171694999903,
-        "circuits_sampled": 18,
-        "oracle_calls": 23,
-        "J": 0.0,
-        "same_optimum": true
-      },
-      {
-        "seed": 4,
-        "index": 47,
-        "wall_s": 3.9186722240001473,
-        "circuits_sampled": 9,
-        "oracle_calls": 9,
-        "J": 0.0,
-        "same_optimum": true
-      }
-    ]
+    "grover_runs": [],
+    "grover_skipped_reason": "29 qubits > 24 simulable"
   },
   {
     "instance": "tau1_tau2_N_5bit",
     "cost": "J",
     "candidates": 32,
     "feasible": 30,
-    "distinct_costs": 5,
+    "distinct_costs": 6,
     "optimal_set": [
-      34,
-      38,
       39,
-      42,
       43,
-      46,
       47,
       50,
       54,
@@ -115,63 +58,64 @@
       62,
       63
     ],
-    "classical_optimum_index": 34,
+    "classical_optimum_index": 39,
     "classical_J": 0.0,
     "classical_evaluations": 30,
-    "classical_s": 6.118200053606415e-05,
+    "classical_s": 5.483800032379804e-05,
     "qubo_vars": 7,
     "qubo_aux_vars": 2,
     "value_qubits": 9,
     "total_qubits": 16,
-    "qubo_brute_force_index": 34,
+    "qubo_brute_force_index": 50,
     "qubo_exact": true,
     "grover_runs": [
       {
         "seed": 0,
-        "index": 50,
-        "wall_s": 2.0376569109994307,
-        "circuits_sampled": 16,
-        "oracle_calls": 20,
+        "index": 58,
+        "wall_s": 2.5372294829994644,
+        "circuits_sampled": 17,
+        "oracle_calls": 19,
         "J": 0.0,
         "same_optimum": true
       },
       {
         "seed": 1,
-        "index": 43,
-        "wall_s": 1.410545796000406,
-        "circuits_sampled": 12,
-        "oracle_calls": 18,
+        "index": 58,
+        "wall_s": 2.0641932409998844,
+        "circuits_sampled": 13,
+        "oracle_calls": 17,
         "J": 0.0,
         "same_optimum": true
       },
       {
         "seed": 2,
-        "index": 42,
-        "wall_s": 1.0426454930002365,
-        "circuits_sampled": 9,
-        "oracle_calls": 10,
+        "index": 47,
+        "wall_s": 2.5289394919991537,
+        "circuits_sampled": 14,
+        "oracle_calls": 20,
         "J": 0.0,
         "same_optimum": true
       },
       {
         "seed": 3,
-        "index": 39,
-        "wall_s": 0.8631011130000843,
-        "circuits_sampled": 11,
-        "oracle_calls": 8,
+        "index": 50,
+        "wall_s": 2.6168797899999845,
+        "circuits_sampled": 18,
+        "oracle_calls": 19,
         "J": 0.0,
         "same_optimum": true
       },
       {
         "seed": 4,
-        "index": 59,
-        "wall_s": 1.208564677999675,
-        "circuits_sampled": 13,
-        "oracle_calls": 13,
+        "index": 55,
+        "wall_s": 1.1668879750004635,
+        "circuits_sampled": 10,
+        "oracle_calls": 8,
         "J": 0.0,
         "same_optimum": true
       }
-    ]
+    ],
+    "grover_skipped_reason": ""
   },
   {
     "instance": "tau1_tau2_4bit",
@@ -191,7 +135,7 @@
     "classical_optimum_index": 50,
     "classical_J": 0.0,
     "classical_evaluations": 15,
-    "classical_s": 6.597900028282311e-05,
+    "classical_s": 6.249700072658015e-05,
     "qubo_vars": 6,
     "qubo_aux_vars": 2,
     "value_qubits": 9,
@@ -202,56 +146,57 @@
       {
         "seed": 0,
         "index": 50,
-        "wall_s": 0.8639238670002669,
-        "circuits_sampled": 13,
-        "oracle_calls": 12,
+        "wall_s": 1.0992368099996384,
+        "circuits_sampled": 12,
+        "oracle_calls": 16,
         "J": 0.0,
         "same_optimum": true
       },
       {
         "seed": 1,
-        "index": 62,
-        "wall_s": 1.3883859030001986,
-        "circuits_sampled": 16,
-        "oracle_calls": 20,
+        "index": 58,
+        "wall_s": 1.9320717499995226,
+        "circuits_sampled": 20,
+        "oracle_calls": 18,
         "J": 0.0,
         "same_optimum": true
       },
       {
         "seed": 2,
         "index": 58,
-        "wall_s": 0.6823261879999336,
-        "circuits_sampled": 9,
-        "oracle_calls": 13,
+        "wall_s": 1.5781500510001933,
+        "circuits_sampled": 18,
+        "oracle_calls": 19,
         "J": 0.0,
         "same_optimum": true
       },
       {
         "seed": 3,
-        "index": 58,
-        "wall_s": 0.9994977810001728,
-        "circuits_sampled": 12,
-        "oracle_calls": 14,
+        "index": 63,
+        "wall_s": 1.3850268989999677,
+        "circuits_sampled": 11,
+        "oracle_calls": 20,
         "J": 0.0,
         "same_optimum": true
       },
       {
         "seed": 4,
-        "index": 63,
-        "wall_s": 1.046329319000506,
-        "circuits_sampled": 12,
-        "oracle_calls": 22,
+        "index": 55,
+        "wall_s": 1.2538426860000982,
+        "circuits_sampled": 10,
+        "oracle_calls": 13,
         "J": 0.0,
         "same_optimum": true
       }
-    ]
+    ],
+    "grover_skipped_reason": ""
   },
   {
     "instance": "full_6bit_detect",
     "cost": "J_detect",
     "candidates": 64,
     "feasible": 60,
-    "distinct_costs": 10,
+    "distinct_costs": 13,
     "optimal_set": [
       1,
       5,
@@ -259,69 +204,24 @@
       13
     ],
     "classical_optimum_index": 1,
-    "classical_J": 0.011513888888888888,
+    "classical_J": 0.012083333333333333,
     "classical_evaluations": 60,
-    "classical_s": 5.413700000644894e-05,
-    "qubo_vars": 10,
-    "qubo_aux_vars": 4,
-    "value_qubits": 10,
-    "total_qubits": 20,
+    "classical_s": 5.910699928790564e-05,
+    "qubo_vars": 18,
+    "qubo_aux_vars": 12,
+    "value_qubits": 13,
+    "total_qubits": 31,
     "qubo_brute_force_index": 1,
     "qubo_exact": true,
-    "grover_runs": [
-      {
-        "seed": 0,
-        "index": 16,
-        "wall_s": 18.686953138999343,
-        "circuits_sampled": 24,
-        "oracle_calls": 16,
-        "J": 0.049930555555555554,
-        "same_optimum": false
-      },
-      {
-        "seed": 1,
-        "index": 9,
-        "wall_s": 21.137464264999835,
-        "circuits_sampled": 19,
-        "oracle_calls": 25,
-        "J": 0.011513888888888888,
-        "same_optimum": true
-      },
-      {
-        "seed": 2,
-        "index": 9,
-        "wall_s": 21.973061157999837,
-        "circuits_sampled": 23,
-        "oracle_calls": 24,
-        "J": 0.011513888888888888,
-        "same_optimum": true
-      },
-      {
-        "seed": 3,
-        "index": 37,
-        "wall_s": 11.712502049999785,
-        "circuits_sampled": 19,
-        "oracle_calls": 7,
-        "J": 0.01347222222222222,
-        "same_optimum": false
-      },
-      {
-        "seed": 4,
-        "index": 37,
-        "wall_s": 21.363522077999733,
-        "circuits_sampled": 19,
-        "oracle_calls": 25,
-        "J": 0.01347222222222222,
-        "same_optimum": false
-      }
-    ]
+    "grover_runs": [],
+    "grover_skipped_reason": "31 qubits > 24 simulable"
   },
   {
     "instance": "tau1_tau2_N_5bit_detect",
     "cost": "J_detect",
     "candidates": 32,
     "feasible": 30,
-    "distinct_costs": 7,
+    "distinct_costs": 8,
     "optimal_set": [
       33,
       37,
@@ -329,61 +229,133 @@
       45
     ],
     "classical_optimum_index": 33,
-    "classical_J": 0.01347222222222222,
+    "classical_J": 0.015312500000000001,
     "classical_evaluations": 30,
-    "classical_s": 5.9654999859048985e-05,
+    "classical_s": 4.7375000576721504e-05,
     "qubo_vars": 8,
     "qubo_aux_vars": 3,
-    "value_qubits": 9,
-    "total_qubits": 17,
+    "value_qubits": 10,
+    "total_qubits": 18,
     "qubo_brute_force_index": 33,
     "qubo_exact": true,
     "grover_runs": [
       {
         "seed": 0,
         "index": 33,
-        "wall_s": 3.6508003779999854,
-        "circuits_sampled": 19,
+        "wall_s": 8.738181407999946,
+        "circuits_sampled": 24,
         "oracle_calls": 24,
-        "J": 0.01347222222222222,
+        "J": 0.015312500000000001,
         "same_optimum": true
       },
       {
         "seed": 1,
-        "index": 37,
-        "wall_s": 3.10999989299944,
-        "circuits_sampled": 11,
-        "oracle_calls": 22,
-        "J": 0.01347222222222222,
+        "index": 33,
+        "wall_s": 6.588312091000262,
+        "circuits_sampled": 21,
+        "oracle_calls": 20,
+        "J": 0.015312500000000001,
         "same_optimum": true
       },
       {
         "seed": 2,
-        "index": 60,
-        "wall_s": 2.1189755680006783,
-        "circuits_sampled": 14,
-        "oracle_calls": 7,
-        "J": 0.056013888888888884,
-        "same_optimum": false
+        "index": 33,
+        "wall_s": 5.7820778779996544,
+        "circuits_sampled": 11,
+        "oracle_calls": 22,
+        "J": 0.015312500000000001,
+        "same_optimum": true
       },
       {
         "seed": 3,
-        "index": 45,
-        "wall_s": 2.7078355710000324,
-        "circuits_sampled": 16,
-        "oracle_calls": 14,
-        "J": 0.01347222222222222,
+        "index": 41,
+        "wall_s": 8.153226546000042,
+        "circuits_sampled": 18,
+        "oracle_calls": 22,
+        "J": 0.015312500000000001,
         "same_optimum": true
       },
       {
         "seed": 4,
-        "index": 41,
-        "wall_s": 4.655184922000444,
-        "circuits_sampled": 22,
-        "oracle_calls": 26,
-        "J": 0.01347222222222222,
+        "index": 45,
+        "wall_s": 6.147369053000148,
+        "circuits_sampled": 12,
+        "oracle_calls": 21,
+        "J": 0.015312500000000001,
         "same_optimum": true
       }
-    ]
+    ],
+    "grover_skipped_reason": ""
+  },
+  {
+    "instance": "tau1_tau2_4bit_detect",
+    "cost": "J_detect",
+    "candidates": 16,
+    "feasible": 15,
+    "distinct_costs": 4,
+    "optimal_set": [
+      48,
+      52,
+      56,
+      60
+    ],
+    "classical_optimum_index": 48,
+    "classical_J": 0.05840000000000001,
+    "classical_evaluations": 15,
+    "classical_s": 5.245000011200318e-05,
+    "qubo_vars": 6,
+    "qubo_aux_vars": 2,
+    "value_qubits": 7,
+    "total_qubits": 13,
+    "qubo_brute_force_index": 48,
+    "qubo_exact": true,
+    "grover_runs": [
+      {
+        "seed": 0,
+        "index": 48,
+        "wall_s": 1.511380535999706,
+        "circuits_sampled": 17,
+        "oracle_calls": 28,
+        "J": 0.05840000000000001,
+        "same_optimum": true
+      },
+      {
+        "seed": 1,
+        "index": 48,
+        "wall_s": 0.7363340339998103,
+        "circuits_sampled": 15,
+        "oracle_calls": 8,
+        "J": 0.05840000000000001,
+        "same_optimum": true
+      },
+      {
+        "seed": 2,
+        "index": 48,
+        "wall_s": 1.7405847729996822,
+        "circuits_sampled": 23,
+        "oracle_calls": 20,
+        "J": 0.05840000000000001,
+        "same_optimum": true
+      },
+      {
+        "seed": 3,
+        "index": 48,
+        "wall_s": 1.070557715999712,
+        "circuits_sampled": 15,
+        "oracle_calls": 15,
+        "J": 0.05840000000000001,
+        "same_optimum": true
+      },
+      {
+        "seed": 4,
+        "index": 48,
+        "wall_s": 1.1378949179998017,
+        "circuits_sampled": 19,
+        "oracle_calls": 15,
+        "J": 0.05840000000000001,
+        "same_optimum": true
+      }
+    ],
+    "grover_skipped_reason": ""
   }
 ]

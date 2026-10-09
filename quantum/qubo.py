@@ -13,13 +13,13 @@ Grover's value register small); infeasible codes (tau1 >= tau2) get rank =
 polynomial (a HUBO) is reduced to a QUBO with Rosenberg substitution, and
 every QUBO is brute-force verified to decode to the true argmin.
 
-Qubit budget: a *random* 6-bit table needs 18 QUBO variables + ~16 value
-qubits (~34, not simulable here), but the real cost tables are structured
-(J depends mostly on the tau1 level and N), so their HUBOs have low degree
-and the full 6-bit QUBO needs only 9 variables + 10 value qubits = 19 qubits.
-Grover therefore runs on the full 64-candidate problem and, for comparison,
-on the 5-bit (tau1 x tau2 x N) and 4-bit (tau1 x tau2) sub-grids at the
-default gate's T_dwell / N. Optimal sets are often large (ties), which makes
+Qubit budget: the qubit count depends on the table's structure. A random
+6-bit table needs 18 QUBO variables + ~16 value qubits (~34); a very regular
+table can need as few as 19 (3-seed table). The 10-seed table needs 29 (spec
+J) / 31 (J_detect) for the full grid, above QuboParams.max_simulated_qubits,
+so the full grid is solved exhaustively and its QUBO is built and verified,
+but Grover runs only on the sub-grids that fit: 5-bit (tau1 x tau2 x N) and
+4-bit (tau1 x tau2) at the default gate's T_dwell / N. Optimal sets are often large (ties), which makes
 the search easy -- the report lists each instance's optimal-set size.
 
 Usage: PYTHONPATH=. uv run python -m quantum.qubo   (needs the cost table)
@@ -147,6 +147,11 @@ def solve_instance(name: str, table: pd.DataFrame, fixed_bits: dict[int, int], r
         "qubo_exact": bool(np.isclose(J[built["brute_force_qubo_index"]], J[classical_local])),
         "grover_runs": [],
     }
+    out["grover_skipped_reason"] = ""
+    if run_q and out["total_qubits"] > qp.max_simulated_qubits:
+        out["grover_skipped_reason"] = f"{out['total_qubits']} qubits > {qp.max_simulated_qubits} simulable"
+        print(f"  {name}: Grover not run ({out['grover_skipped_reason']})", flush=True)
+        run_q = False
     if run_q:
         for seed in qp.grover_seeds:
             r = run_grover(built, seed, qp.grover_iterations)
@@ -170,6 +175,7 @@ def main() -> None:
         ("tau1_tau2_4bit", {4: nbit, 5: tbit}, True, "J"),
         ("full_6bit_detect", {}, True, "J_detect"),
         ("tau1_tau2_N_5bit_detect", {5: tbit}, True, "J_detect"),
+        ("tau1_tau2_4bit_detect", {4: nbit, 5: tbit}, True, "J_detect"),
     ]
     report = []
     for name, fixed, run_q, col in instances:
@@ -185,7 +191,7 @@ def main() -> None:
             "distinct_costs": r["distinct_costs"], "optimal_set_size": len(r["optimal_set"]),
             "classical_optimum": r["classical_optimum_index"], "QUBO_exact": r["qubo_exact"],
             "qubo_vars": r["qubo_vars"], "total_qubits": r["total_qubits"],
-            "grover_same_optimum": f"{sum(x['same_optimum'] for x in g)}/{len(g)}" if g else "not run (qubits)",
+            "grover_same_optimum": f"{sum(x['same_optimum'] for x in g)}/{len(g)}" if g else f"not run: {r['grover_skipped_reason'] or 'formulation only'}",
             "grover_mean_oracle_calls": np.mean([x["oracle_calls"] for x in g]) if g else np.nan,
             "grover_mean_wall_s": np.mean([x["wall_s"] for x in g]) if g else np.nan,
             "classical_evaluations": r["classical_evaluations"],

@@ -309,3 +309,11 @@ Update 2: target board ESP32-S3 (pins re-mapped). Payload shift now detected 10/
 - `sim/params.py` adds `FallbackParams` and `QuboParams`.
 - New dependencies: matplotlib, qiskit 2.5.2, qiskit-optimization 0.7.0, qiskit-aer 0.17.2.
 - Full write-up: `docs/RESULTS.md`. Tests: 174 pass.
+
+## 2026-10-09 — Follow-up round
+- `experiments/heldout_fallback.py` and `experiments/short_window_eval.py` (held-out checks).
+- Opt-in short-window detector in `sim/gate.py`.
+- `ParamSet` / `param_set()` / `hardware_v1_param_set()` in `sim/params.py`; `EpisodeConfig.param_set`.
+- `QuboParams` now 10 seeds and `max_simulated_qubits=24`.
+- CI workflow added; graphify graph refreshed.
+- Write-up: `docs/RESULTS.md` sections 2, 4 and 6. Hardware asks: `docs/HARDWARE_CHECKLIST.md`.

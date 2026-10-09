@@ -5,7 +5,8 @@ values) live here. No other module may define a numeric physical constant.
 """
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from enum import Enum
 
 
 @dataclass(frozen=True)
@@ -179,10 +180,24 @@ class GateParams:
     tau1_exit: float     # CAUTIOUS -> NORMAL hysteresis exit (< tau1)
     tau2_exit: float     # HALT -> CAUTIOUS hysteresis exit (< tau2)
     T_dwell: float       # seconds, minimum time in a mode before any transition
+    # Optional short-window spike detector (opt-in; 0 = off). A push or a battery-droop companion push
+    # leaves a ~50 ms NIS spike that the N=200 window dilutes below tau1. With short_N > 0, NORMAL ->
+    # CAUTIOUS also fires when the sum of the last short_N NIS samples exceeds short_tau. Default off
+    # so existing calibrated results are unchanged; see default_short_window_gate_params().
+    short_N: int = 0
+    short_tau: float = float("inf")
 
 
 def default_gate_params() -> GateParams:
     return GateParams(N=200, tau1=1300.0, tau2=1800.0, tau1_exit=1040.0, tau2_exit=1300.0, T_dwell=0.5)
+
+
+def default_short_window_gate_params() -> GateParams:
+    """Default gate + the short-window spike detector: 10 samples (50 ms), threshold = mean NIS 12.5 per
+    sample. Calibrated on run_batch seeds 0-9 (nominal worst 10-sample level 9.4; battery-droop
+    companion push min 15.7, push min 53); validated on held-out seeds by
+    experiments/short_window_eval.py."""
+    return replace(default_gate_params(), short_N=10, short_tau=125.0)
 
 
 @dataclass(frozen=True)
@@ -473,6 +488,7 @@ class QuboParams:
     nominal_T: float     # s, nominal balance + corridor episode length
     grover_seeds: tuple[int, ...]  # independent GroverOptimizer runs (it is stochastic)
     grover_iterations: int         # GroverOptimizer num_iterations (no-improvement patience)
+    max_simulated_qubits: int      # Grover is skipped (reported "not run") above this; Aer statevector limit here
     w_detect_variant: float        # NOT the spec J: weight of (1 - detection_rate) in the labelled
                                    # "detection-weighted" variant, reported because the spec J ties
                                    # (falls are 0 for every candidate once the fallback is on)
@@ -488,9 +504,67 @@ def default_qubo_params() -> QuboParams:
         w_fall=10.0,
         w_false=1.0,
         w_progress=1.0,
-        seeds=(0, 1, 2),
+        seeds=tuple(range(10)),
         nominal_T=60.0,
         grover_seeds=(0, 1, 2, 3, 4),
         grover_iterations=8,
+        max_simulated_qubits=24,
         w_detect_variant=1.0,
     )
+
+
+class ParamTag(str, Enum):
+    """CLAUDE.md section 6.2 provenance tag for every hardware parameter."""
+
+    REAL_SPEC = "REAL_SPEC"      # from a datasheet
+    MEASURED = "MEASURED"        # measured on our robot
+    ESTIMATED = "ESTIMATED"      # engineering estimate (e.g. from CAD mass)
+    PLACEHOLDER = "PLACEHOLDER"  # stand-in value, NOT reportable
+
+
+@dataclass(frozen=True)
+class ParamSet:
+    """A selectable plant + sensor parameter set (CLAUDE.md section 6.2: keep both sets selectable).
+    tags maps "plant.<field>" / "sensor.<field>" / "v_batt_nominal" / "v_batt_full" to a ParamTag."""
+
+    name: str
+    plant: PlantParams
+    sensor: SensorParams
+    v_batt_nominal: float  # V
+    v_batt_full: float     # V
+    tags: dict
+
+
+def sim_v0_param_set() -> ParamSet:
+    """CLAUDE.md 6.1 NXTway-GS values (the set every result so far uses)."""
+    p, sp = default_plant_params(), default_sensor_params()
+    tags = {f"plant.{k}": ParamTag.REAL_SPEC for k in p.__dataclass_fields__}  # NXTway-GS published values
+    tags.update({f"sensor.{k}": ParamTag.ESTIMATED for k in sp.__dataclass_fields__})  # section 7 starting points
+    tags.update(v_batt_nominal=ParamTag.REAL_SPEC, v_batt_full=ParamTag.REAL_SPEC)
+    return ParamSet("sim_v0", p, sp, v_batt_nominal=7.4, v_batt_full=8.4, tags=tags)
+
+
+def hardware_v1_param_set() -> ParamSet:
+    """Our robot (CLAUDE.md 6.2): ESP32-S3, GY-87, 2x encoder gear motors, TB6612FNG, 2S 1500 mAh LiPo.
+    Every value starts as a COPY of sim_v0 tagged PLACEHOLDER; replace each one with a measurement or
+    datasheet value and change its tag. docs/HARDWARE_CHECKLIST.md says how to measure each one.
+    Results may only be reported on REAL_SPEC / MEASURED values (section 6.2)."""
+    p, sp = default_plant_params(), default_sensor_params()
+    tags = {f"plant.{k}": ParamTag.PLACEHOLDER for k in p.__dataclass_fields__}
+    tags.update({f"sensor.{k}": ParamTag.PLACEHOLDER for k in sp.__dataclass_fields__})
+    # Known from datasheets already: 2S LiPo (3.7 V nominal / 4.2 V full per cell); HC-SR04 range 2 cm - 4 m.
+    tags.update(v_batt_nominal=ParamTag.REAL_SPEC, v_batt_full=ParamTag.REAL_SPEC)
+    tags.update({"sensor.ultrasonic_range_min": ParamTag.REAL_SPEC, "sensor.ultrasonic_range_max": ParamTag.REAL_SPEC})
+    return ParamSet("hardware_v1", p, sp, v_batt_nominal=7.4, v_batt_full=8.4, tags=tags)
+
+
+def param_set(name: str) -> ParamSet:
+    sets = {"sim_v0": sim_v0_param_set, "hardware_v1": hardware_v1_param_set}
+    if name not in sets:
+        raise ValueError(f"unknown parameter set {name!r}; choose from {sorted(sets)}")
+    return sets[name]()
+
+
+def unreportable_params(ps: ParamSet) -> list[str]:
+    """Parameters whose tag forbids reporting results on them (section 6.2)."""
+    return sorted(k for k, t in ps.tags.items() if t not in (ParamTag.REAL_SPEC, ParamTag.MEASURED))

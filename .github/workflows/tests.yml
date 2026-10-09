@@ -1,0 +1,24 @@
+name: tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies (locked)
+        run: uv sync --frozen
+      - name: Firmware params header is current
+        run: |
+          PYTHONPATH=. uv run --frozen python firmware/tools/gen_params_header.py
+          git diff --exit-code firmware/include/echo_params.h
+      - name: Run tests
+        run: PYTHONPATH=. uv run --frozen pytest -q

@@ -42,9 +42,9 @@
     "semantic_hash": ""
   },
   "sim/params.py": {
-    "mtime": 1791522082.0787518,
-    "seen": 1791522346.2362635,
-    "ast_hash": "9493c69dbfe91d42b6e8e6d83fd08cb8",
+    "mtime": 1791516892.4329145,
+    "seen": 1791516918.0349333,
+    "ast_hash": "30ba611515a545dd2f5a398d5b96a1e3",
     "semantic_hash": ""
   },
   "sim/plant.py": {
@@ -90,9 +90,9 @@
     "semantic_hash": ""
   },
   "tests/test_params.py": {
-    "mtime": 1791517167.7689264,
-    "seen": 1791522346.2362876,
-    "ast_hash": "1cf46c1560ef66c76bce81de582bd94c",
+    "mtime": 1791465221.0084836,
+    "seen": 1791516918.0349529,
+    "ast_hash": "55ffdb020a67d0e317a324bf7b0025be",
     "semantic_hash": ""
   },
   "tests/test_plant.py": {
@@ -144,15 +144,15 @@
     "semantic_hash": ""
   },
   "project-context/CURRENT_STATE.md": {
-    "mtime": 1791522240.8397272,
-    "seen": 1791522346.2363234,
-    "ast_hash": "6bde9bb4adb30f3c84e7184af1c35bcc",
+    "mtime": 1791476638.571971,
+    "seen": 1791516918.034981,
+    "ast_hash": "2857ae5f6495494ab5ef94b67eb87834",
     "semantic_hash": ""
   },
   "project-context/DECISIONS.md": {
-    "mtime": 1791517098.8929281,
-    "seen": 1791522346.2363248,
-    "ast_hash": "962cccc45e34a0bd69dad1ac1f18ba21",
+    "mtime": 1791474521.195008,
+    "seen": 1791516918.0349824,
+    "ast_hash": "9981ef2f045600e32b3ea6f8226c8efd",
     "semantic_hash": ""
   },
   "project-context/FAILED_APPROACHES.md": {
@@ -162,15 +162,15 @@
     "semantic_hash": ""
   },
   "project-context/MODEL_HANDOFF.md": {
-    "mtime": 1791522240.8392997,
-    "seen": 1791522346.2363286,
-    "ast_hash": "b030e36f4433b7420dc44ffb2fb30294",
+    "mtime": 1791476638.570954,
+    "seen": 1791516918.0349853,
+    "ast_hash": "b2cd03bb8ac8194cc32b8a49e4306dda",
     "semantic_hash": ""
   },
   "project-context/OPEN_PROBLEMS.md": {
-    "mtime": 1791522240.8208106,
-    "seen": 1791522346.23633,
-    "ast_hash": "ac2d64d4c68c28384591bf086fa19a40",
+    "mtime": 1791476571.8959386,
+    "seen": 1791516918.0349865,
+    "ast_hash": "7ed528a81cc40c7e3eb28ecb1d1005b6",
     "semantic_hash": ""
   },
   "project-context/PROJECT_CONTEXT.md": {
@@ -186,9 +186,9 @@
     "semantic_hash": ""
   },
   "sim/gate.py": {
-    "mtime": 1791517016.9469593,
-    "seen": 1791522346.2362578,
-    "ast_hash": "32f687029c24d06654a119c7c6d62e13",
+    "mtime": 1791465221.007524,
+    "seen": 1791516918.034928,
+    "ast_hash": "2e6f0bb117257f15669f799399967670",
     "semantic_hash": ""
   },
   "sim/world.py": {
@@ -204,9 +204,9 @@
     "semantic_hash": ""
   },
   "tests/test_gate.py": {
-    "mtime": 1791517061.7382202,
-    "seen": 1791522346.2362814,
-    "ast_hash": "4f3254ddc5ca2e74a581b17eff4726ae",
+    "mtime": 1791465221.0084836,
+    "seen": 1791516918.0349472,
+    "ast_hash": "b76b9c0599479ea3d45feb69268e7ee8",
     "semantic_hash": ""
   },
   "tests/test_wall_following.py": {
@@ -258,9 +258,9 @@
     "semantic_hash": ""
   },
   "sim/run.py": {
-    "mtime": 1791517160.7889266,
-    "seen": 1791522346.2362666,
-    "ast_hash": "22864ee977619fce3455f0d8e98bfab1",
+    "mtime": 1791474306.0481224,
+    "seen": 1791516918.0349357,
+    "ast_hash": "74023974b73c5564256d9c87e84b1152",
     "semantic_hash": ""
   },
   "tests/test_metrics.py": {
@@ -300,15 +300,15 @@
     "semantic_hash": ""
   },
   "analysis/plots.py": {
-    "mtime": 1791522153.609419,
-    "seen": 1791522346.2362103,
-    "ast_hash": "15a839e49a447fb75f1853102816c5aa",
+    "mtime": 1791476329.7603042,
+    "seen": 1791516918.0348983,
+    "ast_hash": "b6ee1727c9c2b39a2e1be4c4055d7072",
     "semantic_hash": ""
   },
   "docs/results/qubo_report.json": {
-    "mtime": 1791522146.1115212,
-    "seen": 1791522346.236214,
-    "ast_hash": "1faf5cc7f86de6564971cebe1c90d1a9",
+    "mtime": 1791476520.4654472,
+    "seen": 1791516918.0348995,
+    "ast_hash": "3d17c231ee3ece048a9f96ecefe9dda2",
     "semantic_hash": ""
   },
   "docs/results/qubo_report_3seeds.json": {
@@ -336,8 +336,8 @@
     "semantic_hash": ""
   },
   "firmware/include/echo_params.h": {
-    "mtime": 1791522253.3212543,
-    "seen": 1791522346.2362316,
+    "mtime": 1791476578.1816785,
+    "seen": 1791516918.034909,
     "ast_hash": "4a404886d7cd76728c0c722dc2226a74",
     "semantic_hash": ""
   },
@@ -384,9 +384,9 @@
     "semantic_hash": ""
   },
   "quantum/qubo.py": {
-    "mtime": 1791522082.0792997,
-    "seen": 1791522346.2362478,
-    "ast_hash": "962b7d508038a89058f87eec14432a35",
+    "mtime": 1791476353.5377717,
+    "seen": 1791516918.0349197,
+    "ast_hash": "a99c1dae1af25f1cd6a2a8edf2a898c5",
     "semantic_hash": ""
   },
   "tests/test_firmware_core.py": {
@@ -402,15 +402,15 @@
     "semantic_hash": ""
   },
   "docs/RESULTS.md": {
-    "mtime": 1791522225.4103065,
-    "seen": 1791522346.2363067,
-    "ast_hash": "cac130d7aaaf40318a47a13ecf3e4079",
+    "mtime": 1791476547.8839233,
+    "seen": 1791516918.0349672,
+    "ast_hash": "942c27f25225cb2bb790acd0138c96b4",
     "semantic_hash": ""
   },
   "firmware/README.md": {
-    "mtime": 1791522240.8400867,
-    "seen": 1791522346.2363179,
-    "ast_hash": "89655f9cbd67e0229d7563bac527aad8",
+    "mtime": 1791466964.317263,
+    "seen": 1791516918.0349765,
+    "ast_hash": "36dc7b0943efb1309334e0542e8a3e5d",
     "semantic_hash": ""
   },
   "firmware/WOKWI_GUIDE.md": {
@@ -444,9 +444,9 @@
     "semantic_hash": ""
   },
   "docs/figures/threshold_sensitivity.png": {
-    "mtime": 1791522157.3048124,
-    "seen": 1791522346.236339,
-    "ast_hash": "b18665c7a3a044fc44a11c0e038e04ff",
+    "mtime": 1791476331.6791158,
+    "seen": 1791516918.0349932,
+    "ast_hash": "3396e41e7f6794952295ce836e8897df",
     "semantic_hash": ""
   },
   "docs/firmware_gate_comparison.png": {
@@ -459,30 +459,6 @@
     "mtime": 1791472948.9669147,
     "seen": 1791516918.0349958,
     "ast_hash": "f6f75ef49bbba9d1613948b6b59b8a78",
-    "semantic_hash": ""
-  },
-  "experiments/heldout_fallback.py": {
-    "mtime": 1791517160.684101,
-    "seen": 1791522346.2362223,
-    "ast_hash": "0d8a7ff4bdcb48dbed9d704d3b736005",
-    "semantic_hash": ""
-  },
-  "experiments/short_window_eval.py": {
-    "mtime": 1791517077.9009285,
-    "seen": 1791522346.2362258,
-    "ast_hash": "7cfcae8e31e95d11654207bd287b669a",
-    "semantic_hash": ""
-  },
-  ".github/workflows/tests.yml": {
-    "mtime": 1791516927.364932,
-    "seen": 1791522346.2363026,
-    "ast_hash": "121f2f567ca3cddca98cd99fd3e93072",
-    "semantic_hash": ""
-  },
-  "docs/HARDWARE_CHECKLIST.md": {
-    "mtime": 1791517219.5529253,
-    "seen": 1791522346.2363055,
-    "ast_hash": "ba84ab03a938ecaa71bd9550f336ee74",
     "semantic_hash": ""
   }
 }
