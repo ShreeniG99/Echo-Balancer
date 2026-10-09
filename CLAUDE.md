@@ -29,23 +29,33 @@ Rules:
 ## 4. Repository layout
 
 ```
-sim/params.py        # all physical/sensor/controller/gate parameters
+sim/params.py        # all physical/sensor/controller/gate parameters; selectable sets sim_v0 / hardware_v1 (6.2)
 sim/plant.py         # nonlinear dynamics f(x, v_l, v_r, disturbances)
 sim/integrate.py     # fixed-step RK4, zero-order-hold control
 sim/linearize.py     # A, B at upright equilibrium (analytic + numeric check)
-sim/sensors.py       # gyro, accelerometer, encoders, ultrasonic
+sim/sensors.py       # gyro, accelerometer, encoders, ultrasonic (+ dropout hold)
 sim/control.py       # LQR balance, speed/yaw servo, wall-following
 sim/estimator.py     # Kalman filter + NIS
-sim/gate.py          # Normal/Cautious/Halt state machine
+sim/gate.py          # Normal/Cautious/Halt state machine (+ tilt-threshold baseline)
 sim/disturbances.py  # scheduled disturbance profiles
 sim/world.py         # 2D corridor geometry + ray casting
 sim/run.py           # one closed-loop episode -> DataFrame
-experiments/run_batch.py
+experiments/run_batch.py          # section 12 batch (3 controllers x scenarios x seeds)
+experiments/heldout_fallback.py   # fallback on held-out seeds / payload sizes
+experiments/short_window_eval.py  # short-window detector vs long-window-only, held-out seeds
 analysis/metrics.py
 analysis/plots.py
 analysis/animate.py
-quantum/qubo.py      # cost table -> QUBO; grid vs GroverOptimizer
+analysis/plot_firmware_gate.py    # firmware-core NIS gate vs tilt gate figure
+quantum/cost_table.py   # section 13 steps 1-2: re-simulated cost table
+quantum/formulation.py  # cost table -> exact HUBO -> Rosenberg QUBO (verified exact)
+quantum/qubo.py         # exhaustive vs GroverOptimizer on the same QUBO
+firmware/            # ESP32-S3 / Wokwi: C++ KF + NIS + gates (constants generated from sim/params.py)
+echo_balancer_sim.m  # MATLAB version of the NIS gate simulation (PR #2)
 tests/
+docs/                # RESULTS.md, HARDWARE_CHECKLIST.md, figures/, results/
+project-context/     # cross-session knowledge (section 16)
+.github/workflows/   # CI: pytest + firmware header check
 ```
 
 ## 5. Plant model (base: Yamamoto, "NXTway-GS Model-Based Design", MathWorks, 2008)
@@ -144,8 +154,16 @@ The estimator always uses the **nominal** model. The mismatch is what the innova
 
 - Modes: NORMAL (full speed ref), CAUTIOUS (speed ref × 0.4, softer Q in the LQR gain set), HALT (speed ref = 0; **keep balancing in place**, flash/beep flag set). A balancing robot cannot just cut motors. Motors cut only on the fall condition.
 - Transitions on ε_k with thresholds τ₁ < τ₂ (as χ²(3N) quantiles), hysteresis (exit threshold lower than entry), and minimum dwell time T_dwell.
+  - *Amended 2026-09-21:* χ²(3N) quantiles are not achievable here, because NIS samples are correlated. τ₁/τ₂ are calibrated on nominal runs instead (`project-context/DECISIONS.md`).
 - No NORMAL → HALT skip unless ε_k > τ₂ for a full window. Decide this once and keep it fixed.
 - Gate parameters to be selected: τ₁, τ₂, N, T_dwell.
+- *Added 2026-10-09:* **Short-window spike detector**, part of the default gate.
+  - It is a second NIS sum over the last 10 samples (50 ms), threshold 125.
+  - It triggers NORMAL → CAUTIOUS only, never HALT.
+  - It catches pushes that the N-sample window dilutes.
+- *Added 2026-10-09:* **Fallback**, on by default (`EpisodeConfig.fallback`).
+  - Outside NORMAL, the KF process noise Q is inflated ×100 (`FallbackParams`), and HALT uses the softer gain set.
+  - Reason: under plant mismatch, the nominal-model KF otherwise destabilises the loop.
 
 ## 11. Required tests (tests/)
 
