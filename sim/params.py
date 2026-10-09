@@ -180,24 +180,27 @@ class GateParams:
     tau1_exit: float     # CAUTIOUS -> NORMAL hysteresis exit (< tau1)
     tau2_exit: float     # HALT -> CAUTIOUS hysteresis exit (< tau2)
     T_dwell: float       # seconds, minimum time in a mode before any transition
-    # Optional short-window spike detector (opt-in; 0 = off). A push or a battery-droop companion push
-    # leaves a ~50 ms NIS spike that the N=200 window dilutes below tau1. With short_N > 0, NORMAL ->
-    # CAUTIOUS also fires when the sum of the last short_N NIS samples exceeds short_tau. Default off
-    # so existing calibrated results are unchanged; see default_short_window_gate_params().
+    # Short-window spike detector (0 = off). A push or a battery-droop companion push leaves a ~50 ms
+    # NIS spike that the N=200 window dilutes below tau1. With short_N > 0, NORMAL -> CAUTIOUS also
+    # fires when the sum of the last short_N NIS samples exceeds short_tau. ON in default_gate_params()
+    # since 2026-10-09 (user decision, after the held-out check); the field default is off so hand-built
+    # GateParams (tests, older code) keep the long-window-only behaviour unless they opt in.
     short_N: int = 0
     short_tau: float = float("inf")
 
 
 def default_gate_params() -> GateParams:
-    return GateParams(N=200, tau1=1300.0, tau2=1800.0, tau1_exit=1040.0, tau2_exit=1300.0, T_dwell=0.5)
+    """Long window (N=200, tau1/tau2 calibrated in step 4) + short-window spike detector: 10 samples
+    (50 ms), threshold = mean NIS 12.5 per sample. The short window was calibrated on run_batch seeds 0-9
+    (nominal worst 10-sample level 9.4; battery-droop companion push min 15.7, push min 53) and
+    validated on held-out seeds 100-109 by experiments/short_window_eval.py."""
+    return GateParams(N=200, tau1=1300.0, tau2=1800.0, tau1_exit=1040.0, tau2_exit=1300.0, T_dwell=0.5,
+                      short_N=10, short_tau=125.0)
 
 
-def default_short_window_gate_params() -> GateParams:
-    """Default gate + the short-window spike detector: 10 samples (50 ms), threshold = mean NIS 12.5 per
-    sample. Calibrated on run_batch seeds 0-9 (nominal worst 10-sample level 9.4; battery-droop
-    companion push min 15.7, push min 53); validated on held-out seeds by
-    experiments/short_window_eval.py."""
-    return replace(default_gate_params(), short_N=10, short_tau=125.0)
+def long_window_only_gate_params() -> GateParams:
+    """The gate as it was before 2026-10-09 (no short window), kept for comparisons."""
+    return replace(default_gate_params(), short_N=0, short_tau=float("inf"))
 
 
 @dataclass(frozen=True)

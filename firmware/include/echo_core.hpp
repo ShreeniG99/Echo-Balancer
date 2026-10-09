@@ -165,6 +165,12 @@ struct NisGate {
         if (eps < ECHO_TAU2_EXIT) nm = Mode::CAUTIOUS;
       }
     }
+    // Short-window spike detector (mirrors sim/gate.py): NORMAL -> CAUTIOUS only, never HALT.
+    if (nm == Mode::NORMAL && mode == Mode::NORMAL && can && ECHO_SHORT_N > 0 && count >= ECHO_SHORT_N) {
+      double s = 0;
+      for (int i = 1; i <= ECHO_SHORT_N; ++i) s += window[(head - i + ECHO_GATE_N) % ECHO_GATE_N];
+      if (s > ECHO_SHORT_TAU) nm = Mode::CAUTIOUS;
+    }
     if (nm != mode) time_in_mode = 0.0;
     mode = nm;
     return eps;

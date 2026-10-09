@@ -68,6 +68,8 @@ def main() -> None:
         f"static const double ECHO_TAU1_EXIT = {gp.tau1_exit!r};",
         f"static const double ECHO_TAU2_EXIT = {gp.tau2_exit!r};",
         f"static const double ECHO_T_DWELL = {gp.T_dwell!r};  // s",
+        f"static const int ECHO_SHORT_N = {gp.short_N};  // short-window spike detector (0 = off)",
+        f"static const double ECHO_SHORT_TAU = {gp.short_tau!r};",
         f"static const double ECHO_TILT_PSI1 = {tp.psi1!r};",
         f"static const double ECHO_TILT_PSI2 = {tp.psi2!r};",
         f"static const double ECHO_TILT_PSI1_EXIT = {tp.psi1_exit!r};",

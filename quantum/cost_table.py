@@ -18,7 +18,7 @@ import pandas as pd
 from joblib import Parallel, delayed
 
 from experiments.run_batch import DISTURBANCE_SCENARIOS
-from sim.params import GateParams, QuboParams, default_plant_params, default_qubo_params
+from sim.params import GateParams, QuboParams, default_gate_params, default_plant_params, default_qubo_params
 from sim.run import ControllerType, EpisodeConfig, run_episode
 
 RESULTS = Path(__file__).resolve().parents[1] / "experiments" / "results"
@@ -38,8 +38,11 @@ def decode(idx: int, qp: QuboParams) -> dict:
 
 
 def gate_params_for(c: dict, qp: QuboParams) -> GateParams:
+    """Candidate long-window thresholds; the short-window detector is part of the gate (not a grid
+    variable) and is carried over unchanged from default_gate_params()."""
+    d = default_gate_params()
     return GateParams(N=c["N"], tau1=c["tau1"], tau2=c["tau2"], tau1_exit=qp.tau1_exit_ratio * c["tau1"],
-                      tau2_exit=c["tau1"], T_dwell=c["T_dwell"])
+                      tau2_exit=c["tau1"], T_dwell=c["T_dwell"], short_N=d.short_N, short_tau=d.short_tau)
 
 
 def evaluation_set(qp: QuboParams) -> list[tuple[str, bool, float, float, object]]:
