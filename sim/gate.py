@@ -67,6 +67,11 @@ def step_gate(state: GateState, nis_k: float, dt: float, gate_p: GateParams) -> 
         elif state.mode is GateMode.HALT:
             if epsilon < gate_p.tau2_exit:
                 new_mode = GateMode.CAUTIOUS
+    # Optional short-window spike detector (GateParams.short_N > 0): catches ~50 ms innovation spikes
+    # (pushes) that the long window dilutes. NORMAL -> CAUTIOUS only; it never skips to HALT.
+    if (new_mode is GateMode.NORMAL and state.mode is GateMode.NORMAL and can_transition
+            and 0 < gate_p.short_N <= len(window) and sum(window[-gate_p.short_N:]) > gate_p.short_tau):
+        new_mode = GateMode.CAUTIOUS
 
     if new_mode != state.mode:
         time_in_mode = 0.0

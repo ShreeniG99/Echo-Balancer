@@ -319,3 +319,27 @@ def test_default_speed_servo_params_cautious_has_softer_q_than_nominal():
     assert cautious.Q_psi_dot == nominal.Q_psi_dot / 5
     assert cautious.Q_integral == nominal.Q_integral / 5
     assert cautious.R == nominal.R  # R unchanged -- only Q is "softer" per CLAUDE.md section 10
+
+
+def test_param_sets_are_selectable_and_fully_tagged():
+    """CLAUDE.md 6.2: both sets selectable; every hardware entry carries a provenance tag."""
+    from sim.params import ParamTag, default_plant_params, param_set, unreportable_params
+
+    for name in ("sim_v0", "hardware_v1"):
+        ps = param_set(name)
+        fields = {f"plant.{k}" for k in ps.plant.__dataclass_fields__} | {f"sensor.{k}" for k in ps.sensor.__dataclass_fields__}
+        assert fields | {"v_batt_nominal", "v_batt_full"} == set(ps.tags)
+        assert all(isinstance(t, ParamTag) for t in ps.tags.values())
+    assert param_set("sim_v0").plant == default_plant_params()  # sim_v0 is exactly what every result used
+    hw = param_set("hardware_v1")
+    assert "plant.M" in unreportable_params(hw)  # placeholders until measured
+    assert "v_batt_nominal" not in unreportable_params(hw)
+
+
+def test_unknown_param_set_rejected():
+    import pytest
+
+    from sim.params import param_set
+
+    with pytest.raises(ValueError):
+        param_set("hardware_v2")

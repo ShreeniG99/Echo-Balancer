@@ -1,0 +1,344 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1790081987.117308,
+    "seen": 1790096169.6147785,
+    "ast_hash": "3ac995fbf93552a991ecab9b63f776aa",
+    "semantic_hash": "3ac995fbf93552a991ecab9b63f776aa"
+  },
+  "pyproject.toml": {
+    "mtime": 1790082142.116064,
+    "seen": 1790096169.6148193,
+    "ast_hash": "fb5e1764996ff5ecb563021d6457388c",
+    "semantic_hash": ""
+  },
+  "sim/__init__.py": {
+    "mtime": 1790081987.4237669,
+    "seen": 1790096169.6148255,
+    "ast_hash": "3bab25a3e651a9e4a00473d2257b99f9",
+    "semantic_hash": "3bab25a3e651a9e4a00473d2257b99f9"
+  },
+  "sim/control.py": {
+    "mtime": 1790081987.439745,
+    "seen": 1790096169.61483,
+    "ast_hash": "20c18086938b66801c50ff4111ee33e2",
+    "semantic_hash": ""
+  },
+  "sim/estimator.py": {
+    "mtime": 1790081987.455735,
+    "seen": 1790096169.6148386,
+    "ast_hash": "89ed006ae692053c57925051b3a4c2d0",
+    "semantic_hash": ""
+  },
+  "sim/integrate.py": {
+    "mtime": 1790081987.4713757,
+    "seen": 1790096169.6148467,
+    "ast_hash": "c1eec073c6a16a4479171421d0b98dec",
+    "semantic_hash": ""
+  },
+  "sim/linearize.py": {
+    "mtime": 1790081987.4713757,
+    "seen": 1790096169.61485,
+    "ast_hash": "2836d5be691e1a0cc66cd8c694ee2eac",
+    "semantic_hash": ""
+  },
+  "sim/params.py": {
+    "mtime": 1790091378.2214122,
+    "seen": 1790096169.614854,
+    "ast_hash": "ac5f00372c6acabdae0ff53841c11c02",
+    "semantic_hash": ""
+  },
+  "sim/plant.py": {
+    "mtime": 1790081987.4873447,
+    "seen": 1790096169.6148608,
+    "ast_hash": "29407ab3efb3adf1f9720ac2f72e06c5",
+    "semantic_hash": ""
+  },
+  "sim/sensors.py": {
+    "mtime": 1790081987.4873447,
+    "seen": 1790096169.6148736,
+    "ast_hash": "b0bcd0920d88eca1d4b096de93df257d",
+    "semantic_hash": ""
+  },
+  "tests/__init__.py": {
+    "mtime": 1790081987.5030956,
+    "seen": 1790096169.6148875,
+    "ast_hash": "3bab25a3e651a9e4a00473d2257b99f9",
+    "semantic_hash": "3bab25a3e651a9e4a00473d2257b99f9"
+  },
+  "tests/test_control.py": {
+    "mtime": 1790081987.5106928,
+    "seen": 1790096169.6148946,
+    "ast_hash": "cd101c4f6a47a7ef0be37148b3a2006b",
+    "semantic_hash": ""
+  },
+  "tests/test_estimator.py": {
+    "mtime": 1790081987.519618,
+    "seen": 1790096169.6149075,
+    "ast_hash": "c451a5cf917b9463c2e5935c145c804a",
+    "semantic_hash": ""
+  },
+  "tests/test_integrate.py": {
+    "mtime": 1790081987.5354865,
+    "seen": 1790096169.61492,
+    "ast_hash": "888c107d3c0280a78140448ec0854d76",
+    "semantic_hash": ""
+  },
+  "tests/test_linearize.py": {
+    "mtime": 1790081987.5354865,
+    "seen": 1790096169.6149266,
+    "ast_hash": "f04a9b6faf5677aab10ea4d09690df3f",
+    "semantic_hash": ""
+  },
+  "tests/test_params.py": {
+    "mtime": 1790083239.0979173,
+    "seen": 1790096169.6149395,
+    "ast_hash": "5c539437ba5d724b4e3d2cbc527691aa",
+    "semantic_hash": ""
+  },
+  "tests/test_plant.py": {
+    "mtime": 1790081987.5516808,
+    "seen": 1790096169.6149457,
+    "ast_hash": "6198454453c8bc402302bc8d5b1a465b",
+    "semantic_hash": ""
+  },
+  "tests/test_sensors.py": {
+    "mtime": 1790081987.5516808,
+    "seen": 1790096169.614963,
+    "ast_hash": "2042149beb6f923750559bc314e54190",
+    "semantic_hash": ""
+  },
+  ".claude/CLAUDE.md": {
+    "mtime": 1790081987.117308,
+    "seen": 1790096169.6149857,
+    "ast_hash": "c232166e6492ba1ed955030b16979b05",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/SKILL.md": {
+    "mtime": 1790081987.1422765,
+    "seen": 1790096169.614992,
+    "ast_hash": "27332bcad618129dbd265b54d42b6ad7",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/add-watch.md": {
+    "mtime": 1790081987.1494172,
+    "seen": 1790096169.6149988,
+    "ast_hash": "58c888b5ec0689a886543dd765c1acc9",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/exports.md": {
+    "mtime": 1790081987.1502259,
+    "seen": 1790096169.6150057,
+    "ast_hash": "ecc0c36852fee4ba6280cdf2b9149039",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/extraction-spec.md": {
+    "mtime": 1790081987.1502259,
+    "seen": 1790096169.6150124,
+    "ast_hash": "024c6f2a3c146b03c72cc871dc56ed3c",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/github-and-merge.md": {
+    "mtime": 1790081987.165279,
+    "seen": 1790096169.6150186,
+    "ast_hash": "aa0e7ef186392cad062e60483ca7dbbf",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/hooks.md": {
+    "mtime": 1790081987.165279,
+    "seen": 1790096169.6150246,
+    "ast_hash": "0045c2f12c69bff3a641a8908a1ac057",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/query.md": {
+    "mtime": 1790081987.1811347,
+    "seen": 1790096169.6150308,
+    "ast_hash": "852ef14334d60a75ae666ea103d4c4f0",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/transcribe.md": {
+    "mtime": 1790081987.1832268,
+    "seen": 1790096169.6150498,
+    "ast_hash": "5c6a9af05d12b5797b2fa8b9493dcc37",
+    "semantic_hash": ""
+  },
+  ".claude/skills/graphify/references/update.md": {
+    "mtime": 1790081987.1832268,
+    "seen": 1790096169.6150563,
+    "ast_hash": "07bf4293ea21b4e00a9655dd4e7f0af5",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1790081987.2041132,
+    "seen": 1790096169.6150625,
+    "ast_hash": "270c397d9fc4f2e8e09e6586774ce004",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-09-19-linearize-lqr-step2.md": {
+    "mtime": 1790081987.2165651,
+    "seen": 1790096169.615069,
+    "ast_hash": "7ea1062ed1e1fe708f5e18466eacfd53",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-09-19-plant-model-step1.md": {
+    "mtime": 1790081987.2165651,
+    "seen": 1790096169.6150753,
+    "ast_hash": "c48fe991b15043b66d48eda3896ce9ac",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-09-20-sensors-estimator-nis-step3.md": {
+    "mtime": 1790081987.2165651,
+    "seen": 1790096169.6150823,
+    "ast_hash": "d30b984d666ea9486c2b38527647fc41",
+    "semantic_hash": ""
+  },
+  "project-context/CLAUDE_PROJECT_CONTEXT.md": {
+    "mtime": 1790081987.3761525,
+    "seen": 1790096169.615108,
+    "ast_hash": "a9ab98995924dc02072ba29a9400566d",
+    "semantic_hash": ""
+  },
+  "project-context/CURRENT_STATE.md": {
+    "mtime": 1790095966.1827662,
+    "seen": 1790096169.6151145,
+    "ast_hash": "8a6195dce9c7fa3a2b6d94d4feb9010d",
+    "semantic_hash": ""
+  },
+  "project-context/DECISIONS.md": {
+    "mtime": 1790095786.7614202,
+    "seen": 1790096169.6151211,
+    "ast_hash": "b256943ce2dde0d31cd49c8efc5e463c",
+    "semantic_hash": ""
+  },
+  "project-context/FAILED_APPROACHES.md": {
+    "mtime": 1790095811.3729365,
+    "seen": 1790096169.6151278,
+    "ast_hash": "ab6a070fc1e62dd96f9777692d1752ea",
+    "semantic_hash": ""
+  },
+  "project-context/MODEL_HANDOFF.md": {
+    "mtime": 1790096123.8811054,
+    "seen": 1790096169.6151345,
+    "ast_hash": "7d784a777dfca86f1bfe117926bef53c",
+    "semantic_hash": ""
+  },
+  "project-context/OPEN_PROBLEMS.md": {
+    "mtime": 1790095847.3049827,
+    "seen": 1790096169.6151404,
+    "ast_hash": "616b798115430e91cd8d307895b68aba",
+    "semantic_hash": ""
+  },
+  "project-context/PROJECT_CONTEXT.md": {
+    "mtime": 1790081987.4237669,
+    "seen": 1790096169.6151474,
+    "ast_hash": "51e519f44a327798b66670edfb7da981",
+    "semantic_hash": ""
+  },
+  "sim/disturbances.py": {
+    "mtime": 1790081987.439745,
+    "seen": 1790096169.6148345,
+    "ast_hash": "6a344e3c2cbcd3f1156c679351f282ba",
+    "semantic_hash": ""
+  },
+  "sim/gate.py": {
+    "mtime": 1790083619.7747056,
+    "seen": 1790096169.6148427,
+    "ast_hash": "e0ecae9b441a6407e22f5f1b6d473a91",
+    "semantic_hash": ""
+  },
+  "sim/world.py": {
+    "mtime": 1790081987.5030956,
+    "seen": 1790096169.61488,
+    "ast_hash": "70cfe40133983d0a52d3d565c5435092",
+    "semantic_hash": ""
+  },
+  "tests/test_disturbances.py": {
+    "mtime": 1790081987.5106928,
+    "seen": 1790096169.614902,
+    "ast_hash": "f8ea5d5905e4c85d298a215c7111298f",
+    "semantic_hash": ""
+  },
+  "tests/test_gate.py": {
+    "mtime": 1790083578.8000765,
+    "seen": 1790096169.6149137,
+    "ast_hash": "1ebccb327000b0bf8ce339a3e93c62b0",
+    "semantic_hash": ""
+  },
+  "tests/test_wall_following.py": {
+    "mtime": 1790081987.5516808,
+    "seen": 1790096169.6149719,
+    "ast_hash": "39421849e3e795fd8e5056cad8425b24",
+    "semantic_hash": ""
+  },
+  "tests/test_world.py": {
+    "mtime": 1790081987.5675988,
+    "seen": 1790096169.6149793,
+    "ast_hash": "b1286b8ed979c30e2d657d6e948bc5f0",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-09-21-gate-disturbances-step4.md": {
+    "mtime": 1790081987.2336884,
+    "seen": 1790096169.6150894,
+    "ast_hash": "13b93ae295b7f647f2a7b6052ee1d925",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-09-21-world-wallfollowing-step5.md": {
+    "mtime": 1790081987.2423115,
+    "seen": 1790096169.615096,
+    "ast_hash": "6af1efa795d962f724d4c7c9b7204c5f",
+    "semantic_hash": ""
+  },
+  "analysis/__init__.py": {
+    "mtime": 1790092140.7646973,
+    "seen": 1790096169.614797,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "analysis/metrics.py": {
+    "mtime": 1790092155.5010207,
+    "seen": 1790096169.614805,
+    "ast_hash": "a36ff6a55aa1596f975d2c82c1acc211",
+    "semantic_hash": ""
+  },
+  "experiments/__init__.py": {
+    "mtime": 1790093146.7173226,
+    "seen": 1790096169.6148086,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": ""
+  },
+  "experiments/run_batch.py": {
+    "mtime": 1790095357.7171752,
+    "seen": 1790096169.6148121,
+    "ast_hash": "ff6b970db1548272f9c80beb261d9bdb",
+    "semantic_hash": ""
+  },
+  "sim/run.py": {
+    "mtime": 1790091334.6586812,
+    "seen": 1790096169.6148672,
+    "ast_hash": "bbb07eafb43d55621df4da670d3e40ec",
+    "semantic_hash": ""
+  },
+  "tests/test_metrics.py": {
+    "mtime": 1790092123.357668,
+    "seen": 1790096169.6149325,
+    "ast_hash": "3a197aad23d2e2c4391c379312166de6",
+    "semantic_hash": ""
+  },
+  "tests/test_run.py": {
+    "mtime": 1790091367.8938599,
+    "seen": 1790096169.6149514,
+    "ast_hash": "49d8feb44d9050961380bdc78a50bbec",
+    "semantic_hash": ""
+  },
+  "tests/test_run_batch.py": {
+    "mtime": 1790094571.4882736,
+    "seen": 1790096169.6149569,
+    "ast_hash": "6131ddcaa49a45c4f3c369b6f66a6e1f",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-09-22-run-batch-metrics-step6.md": {
+    "mtime": 1790085361.6255627,
+    "seen": 1790096169.6151013,
+    "ast_hash": "cf443aaaaad0eb4ae1ad6dd4ab7fde23",
+    "semantic_hash": ""
+  }
+}

@@ -370,3 +370,43 @@ def test_tilt_gate_halt_to_cautious_exit():
 
     assert state.mode is GateMode.CAUTIOUS
     assert state.time_in_mode == 0.0
+
+
+def test_short_window_is_off_by_default():
+    from sim.params import default_gate_params
+
+    gp = default_gate_params()
+    assert gp.short_N == 0
+    state = initial_gate_state()
+    for _ in range(gp.N):
+        state, _ = step_gate(state, 3.0, 0.005, gp)
+    for _ in range(10):  # spike: short sum 500 (would trip a 125 short threshold); long sum 190*3+500=1070 < tau1
+        state, eps = step_gate(state, 50.0, 0.005, gp)
+    assert eps < gp.tau1
+    assert state.mode is GateMode.NORMAL
+
+
+def test_short_window_spike_enters_cautious_never_halt():
+    from sim.params import default_short_window_gate_params
+
+    gp = default_short_window_gate_params()
+    state = initial_gate_state()
+    for _ in range(gp.N):
+        state, _ = step_gate(state, 3.0, 0.005, gp)
+    assert state.mode is GateMode.NORMAL
+    for _ in range(gp.short_N):
+        state, eps = step_gate(state, 1000.0, 0.005, gp)  # huge spike: short sum >> short_tau
+    assert state.mode is GateMode.CAUTIOUS
+    assert eps > gp.tau2  # the long-window statistic alone would allow HALT; the short detector must not
+
+
+def test_short_window_respects_dwell():
+    from dataclasses import replace
+
+    from sim.params import default_short_window_gate_params
+
+    gp = replace(default_short_window_gate_params(), T_dwell=1.0)
+    state = initial_gate_state()
+    for _ in range(gp.short_N):  # spike inside the first 1.0 s: dwell not yet elapsed
+        state, _ = step_gate(state, 1000.0, 0.005, gp)
+    assert state.mode is GateMode.NORMAL
