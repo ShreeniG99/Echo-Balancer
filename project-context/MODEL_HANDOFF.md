@@ -16,7 +16,9 @@ The "2026-10-08 state" section below supersedes anything older further down; the
 - **2026-10-09 follow-up (branch `claude/funny-noether-0b1r6a`, restarted from master after PR #3 merged):**
   - Cost table now 10 seeds: 20/60 tie at spec J = 0, incl. the default; Grover 20/20 on simulable sub-grids. The full grid needs 29-31 qubits, so it is not run.
   - The fallback holds on held-out seeds and payloads.
-  - Opt-in short-window detector (`GateParams.short_N/short_tau`, `default_short_window_gate_params`) fixes push / droop-companion detection on held-out seeds; OFF by default.
+  - Short-window detector (`GateParams.short_N/short_tau`) is ON in `default_gate_params()` (user decision A, PR #5). The old gate is `long_window_only_gate_params()`. Batch: push 3/10 -> 10/10, droop 0/10 -> 10/10, 0 false alarms.
+  - With it, detection is 97-100 % for all 60 candidates, and J_detect's optima (tau1/N=5.0, N=200) lie inside spec J's optimal set.
+  - CLAUDE.md sections 4 and 10 were updated (user decision B).
   - Selectable parameter sets (`sim.params.param_set("sim_v0"|"hardware_v1")`, `EpisodeConfig.param_set`) with section 6.2 tags.
   - `docs/HARDWARE_CHECKLIST.md` lists what the user must measure.
   - CI: `.github/workflows/tests.yml`.

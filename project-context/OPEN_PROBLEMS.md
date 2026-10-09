@@ -106,6 +106,6 @@ Confirmed mechanism (traced phi/v_l/v_r): heading drifts to -41 deg by 22 s (tur
 ## 2026-10-09 — From the follow-up round
 - **Confirmed: fallback + chattering gate can cause a fall.** Over-sensitive thresholds (tau1/N = 3.5, N = 100) false-alarm before a payload shift, drop back to NORMAL mid-disturbance (snapping KF Q back to nominal), then HALT, and the robot falls. 5 of 640 such episodes; 0 elsewhere. Same seed survives with fallback off. Suspected fix (untested): ramp Q inflation down instead of switching.
 - **Confirmed: a pure battery-voltage sag is undetectable by NIS here.** The KF does not model V_batt; the battery_droop scenario is only "detected" via its companion push.
-- **Opt-in short-window detector works on held-out seeds 100-109** (push 10/10, droop-companion 10/10, 0 false alarms) but is OFF by default; enabling it needs sections 1-2 of RESULTS.md re-run and a firmware port. User decision pending.
+- **[RESOLVED 2026-10-09]** Short-window detector is now ON by default (user decision A); sections 1-2 re-run and firmware ported. Wokwi has not been re-run since.
 - **Stale branch `claude/amazing-thompson-o1hp87` (tip babf3f8) could not be deleted** from the cloud session (proxy refuses non-session branch pushes); user to delete in GitHub UI.
 - **Pre-existing lint:** 12 ruff F-findings in tests/test_params.py and tests/test_run_batch.py (unused imports/variable) predate this work; not touched.

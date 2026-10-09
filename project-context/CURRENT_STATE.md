@@ -317,3 +317,9 @@ Update 2: target board ESP32-S3 (pins re-mapped). Payload shift now detected 10/
 - `QuboParams` now 10 seeds and `max_simulated_qubits=24`.
 - CI workflow added; graphify graph refreshed.
 - Write-up: `docs/RESULTS.md` sections 2, 4 and 6. Hardware asks: `docs/HARDWARE_CHECKLIST.md`.
+
+## 2026-10-09 — Decisions A and B
+- Short-window detector ON by default (Python, cost-table candidates, firmware).
+- Every result was re-run: batch, 10-seed cost table, Grover, held-out evaluations, figures.
+- CLAUDE.md sections 4 and 10 updated.
+- RESULTS.md rewritten for the new default.
