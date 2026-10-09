@@ -122,7 +122,7 @@ def fig_sensitivity(cost: pd.DataFrame, path: Path) -> None:
             if r == 0:
                 ax.set_title(title, loc="left", fontsize=9, color=INK)
     fig.suptitle("Threshold sensitivity, re-simulated per candidate. Outlined = optimal (all ties). "
-                 "Fall rate 0 and progress 1.0 for every candidate (not shown).", fontsize=10, x=0.01, ha="left")
+                 "Progress 1.0 for every candidate (not shown); see RESULTS.md for falls.", fontsize=10, x=0.01, ha="left")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)

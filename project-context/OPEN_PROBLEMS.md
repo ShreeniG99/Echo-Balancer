@@ -102,3 +102,10 @@ Confirmed mechanism (traced phi/v_l/v_r): heading drifts to -41 deg by 22 s (tur
 - Spec J (section 13) does not reward detection; with the fallback on, fall_rate = 0 and progress = 1 for every grid candidate, so J reduces to false fallback and 28/60 candidates tie at J = 0 (incl. the default gate). The detection-weighted variant J_detect is reported separately and is NOT the spec J.
 - GroverOptimizer (num_iterations=8) misses the optimum when the optimal set is small: 6/10 on J_detect (4 optimal of 64), vs 15/15 on spec J (7-28 optimal). Misses were 2nd/3rd-best cost levels.
 - Still open: no cap on yaw authority vs balance; hardware parameters (6.2) still placeholders; graphify not installed in the cloud container, so graphify-out/ was not refreshed this session.
+
+## 2026-10-09 — From the follow-up round
+- **Confirmed: fallback + chattering gate can cause a fall.** Over-sensitive thresholds (tau1/N = 3.5, N = 100) false-alarm before a payload shift, drop back to NORMAL mid-disturbance (snapping KF Q back to nominal), then HALT, and the robot falls. 5 of 640 such episodes; 0 elsewhere. Same seed survives with fallback off. Suspected fix (untested): ramp Q inflation down instead of switching.
+- **Confirmed: a pure battery-voltage sag is undetectable by NIS here.** The KF does not model V_batt; the battery_droop scenario is only "detected" via its companion push.
+- **Opt-in short-window detector works on held-out seeds 100-109** (push 10/10, droop-companion 10/10, 0 false alarms) but is OFF by default; enabling it needs sections 1-2 of RESULTS.md re-run and a firmware port. User decision pending.
+- **Stale branch `claude/amazing-thompson-o1hp87` (tip babf3f8) could not be deleted** from the cloud session (proxy refuses non-session branch pushes); user to delete in GitHub UI.
+- **Pre-existing lint:** 12 ruff F-findings in tests/test_params.py and tests/test_run_batch.py (unused imports/variable) predate this work; not touched.
