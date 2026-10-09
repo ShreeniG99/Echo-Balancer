@@ -82,11 +82,13 @@ from sim.gate import (
 )
 from sim.integrate import rk4_step
 from sim.params import (
+    GateParams,
     PlantParams,
     SensorParams,
     default_corridor_params,
     default_disturbance_params,
     default_estimator_params,
+    default_fallback_params,
     default_gate_params,
     default_lqr_balance_params,
     default_plant_params,
@@ -99,7 +101,7 @@ from sim.params import (
     default_yaw_control_params,
 )
 from sim.plant import f as plant_f
-from sim.sensors import accelerometer, encoder, gyro, ultrasonic
+from sim.sensors import accelerometer, encoder, gyro, hold_on_dropout, ultrasonic
 from sim.world import cast_ray, pose_velocity
 
 DisturbanceFn = Callable[
@@ -127,6 +129,8 @@ class EpisodeConfig:
     x0_psi_deg: float = 0.0
     disturbance: Optional[DisturbanceFn] = None
     disturbance_name: str = "none"            # label only, for experiments/run_batch.py's output
+    gate_params: Optional[GateParams] = None  # NIS-gate override (threshold selection re-simulates with this); None = default_gate_params()
+    fallback: bool = True                     # outside NORMAL: KF Q x FallbackParams.q_inflation, HALT on the softer gain set (see FallbackParams)
 
 
 def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
@@ -134,7 +138,7 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
     sensor_p = default_sensor_params()
     est_p = default_estimator_params()
     lqr_p = default_lqr_balance_params()
-    gate_p = default_gate_params()
+    gate_p = config.gate_params if config.gate_params is not None else default_gate_params()
     tilt_gate_p = default_tilt_gate_params()
     run_p = default_run_params()
     dp = default_disturbance_params()
@@ -161,6 +165,8 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
     C = measurement_matrix()
     Q = process_noise(sensor_p, est_p, dt_control)
     R = measurement_noise(sensor_p)
+    Q_fallback = Q * default_fallback_params().q_inflation
+    mode = GateMode.NORMAL
 
     rng = np.random.default_rng(seed)
     n_steps = int(round(config.T / dt_control))
@@ -178,6 +184,7 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
     prev_wall_err = 0.0
     front_reading = sensor_p.ultrasonic_range_max
     right_reading = sensor_p.ultrasonic_range_max
+    right_valid: float | None = None  # last non-dropout side reading (sim.sensors.hold_on_dropout)
 
     rows = []
 
@@ -202,7 +209,10 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
         psi_acc_meas = accelerometer(x_true[1], theta_ddot_true, p_now, sensor_p_now, rng)
         y = np.array([theta_enc, psi_dot_meas, psi_acc_meas])
 
-        kf = predict(kf, Ad, Bd, u_prev, Q)
+        # Fallback: once the driving gate has left NORMAL (previous tick's decision), the KF
+        # trusts the sensors over its nominal model (FallbackParams, firmware parity).
+        Q_now = Q_fallback if (config.fallback and mode is not GateMode.NORMAL) else Q
+        kf = predict(kf, Ad, Bd, u_prev, Q_now)
         kf, nis = update(kf, y, C, R)
         nis_gate_state, epsilon = step_gate(nis_gate_state, nis, dt_control, gate_p)
         tilt_gate_state = step_tilt_gate(tilt_gate_state, kf.x_hat[1], dt_control, tilt_gate_p)
@@ -222,8 +232,9 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
                 true_right = cast_ray(pos[0], pos[1], heading - np.pi / 2, corridor_p, 0.02, 4.0)
                 true_front = cast_ray(pos[0], pos[1], heading, corridor_p, 0.02, 4.0)
                 right_reading = ultrasonic(true_right, sensor_p, rng)
+                right_valid = hold_on_dropout(right_reading, right_valid, sensor_p)
                 front_reading = ultrasonic(true_front, sensor_p, rng)
-                wall_err = wall_p.target_distance - right_reading
+                wall_err = wall_p.target_distance - right_valid
                 phi_dot_ref, prev_wall_err = wall_following_control(
                     wall_err, prev_wall_err, 1.0 / sensor_p.ultrasonic_rate_hz, wall_p
                 )
@@ -233,8 +244,8 @@ def run_episode(config: EpisodeConfig, seed: int) -> pd.DataFrame:
                 theta_dot_ref, K5 = base_ref, K5_nominal
             elif mode is GateMode.CAUTIOUS:
                 theta_dot_ref, K5 = base_ref * run_p.cautious_speed_scale, K5_cautious
-            else:  # HALT: speed ref = 0, "keep balancing in place" -- nominal gain (see plan doc "Design decision 6")
-                theta_dot_ref, K5 = 0.0, K5_nominal
+            else:  # HALT: speed ref = 0, "keep balancing in place" -- softer gains with fallback, else nominal (plan doc "Design decision 6")
+                theta_dot_ref, K5 = 0.0, (K5_cautious if config.fallback else K5_nominal)
 
             err5 = np.array([x_true[0] - theta_ref, x_true[1], x_true[3] - theta_dot_ref, x_true[4], z])
             theta_ref += theta_dot_ref * dt_control

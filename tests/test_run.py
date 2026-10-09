@@ -262,37 +262,43 @@ def test_corridor_push_disturbance_is_a_known_miss_for_the_nis_gate():
 
 
 def test_cautious_mode_scales_down_corridor_speed_reference():
-    """Force CAUTIOUS via the tilt-threshold controller (a large initial
-    tilt trips it almost immediately, per test_tilt_threshold_controller_
-    detection's calibration) and confirm the robot's realized forward
-    speed drops relative to a NORMAL-mode run -- CLAUDE.md section 10:
-    "CAUTIOUS (speed ref x 0.4 ...)".
+    """CLAUDE.md section 10: "CAUTIOUS (speed ref x 0.4 ...)". CAUTIOUS is forced
+    deterministically with a GateParams override (tau1 below any epsilon, tau2
+    unreachable), so both runs share the same seed AND initial condition and only
+    the mode differs. (The previous version relied on a 2 deg initial tilt tripping
+    the tilt gate; that never survives the 0.5 s dwell -- it was ultrasonic-dropout
+    yaw kicks that tripped it, fixed by sim.sensors.hold_on_dropout.)"""
+    from sim.params import GateParams
 
-    Confound note: this varies both controller (NAIVE vs TILT_THRESHOLD)
-    AND initial tilt (0 deg vs 2 deg) between the two runs, rather than
-    holding the initial condition fixed and only toggling the controller.
-    Verified empirically (code review, step 6) that this doesn't produce a
-    false pass: run the 2 deg initial tilt through NAIVE alone (so it
-    recovers under full-speed NORMAL control, no CAUTIOUS scaling) and its
-    own recovery-transient progress cost is only ~0.1% of normal_progress,
-    negligible next to the ~6.2% progress deficit actually measured here
-    between normal_progress and cautious_progress -- so the comparison
-    below isolates the CAUTIOUS speed-scaling effect well enough despite
-    not holding the initial condition perfectly fixed."""
-    normal_config = EpisodeConfig(controller=ControllerType.NAIVE, T=10.0, wall_following=True)
-    normal_df = run_episode(normal_config, seed=42)
+    normal_df = run_episode(EpisodeConfig(controller=ControllerType.NAIVE, T=10.0, wall_following=True), seed=42)
     normal_progress = normal_df["theta"].iloc[-1] - normal_df["theta"].iloc[0]
 
-    dp = default_disturbance_params()
-    cautious_config = EpisodeConfig(
-        controller=ControllerType.TILT_THRESHOLD, T=10.0, wall_following=True,
-        x0_psi_deg=dp.payload_shift_test_psi0_deg,  # 2 deg -- enough to trip CAUTIOUS quickly, verified in Task 4
+    always_cautious = GateParams(N=20, tau1=1e-6, tau2=1e12, tau1_exit=0.0, tau2_exit=1e11, T_dwell=0.5)
+    cautious_df = run_episode(
+        EpisodeConfig(controller=ControllerType.NIS_GATE, T=10.0, wall_following=True, gate_params=always_cautious),
+        seed=42,
     )
-    cautious_df = run_episode(cautious_config, seed=42)
     cautious_progress = cautious_df["theta"].iloc[-1] - cautious_df["theta"].iloc[0]
 
-    assert "CAUTIOUS" in set(cautious_df["mode"])
-    assert cautious_progress < normal_progress
+    assert (cautious_df["mode"].iloc[200:] == "CAUTIOUS").all()
+    assert cautious_progress < 0.7 * normal_progress
+
+
+def test_side_ultrasonic_dropout_does_not_kick_yaw():
+    """A 2% dropout returns max range; held by hold_on_dropout it must not reach the
+    wall-following loop. Regression: before the fix, nominal 60 s corridor runs fell
+    in 2/10 (naive) to 5/10 (tilt gate) seeds; naive seed 3 was one of them."""
+    from sim.params import default_sensor_params
+    from sim.sensors import hold_on_dropout
+
+    sp = default_sensor_params()
+    assert hold_on_dropout(sp.ultrasonic_range_max, 0.48, sp) == 0.48
+    assert hold_on_dropout(0.51, 0.48, sp) == 0.51
+    assert hold_on_dropout(sp.ultrasonic_range_max, None, sp) == sp.ultrasonic_range_max
+
+    df = run_episode(EpisodeConfig(controller=ControllerType.NAIVE, T=60.0, wall_following=True), seed=3)
+    assert not df["fallen"].any()
+    assert np.degrees(np.abs(df["phi"])).max() < 30.0
 
 
 def test_halt_mode_zeroes_corridor_speed_reference():
@@ -353,3 +359,21 @@ def test_halt_mode_zeroes_corridor_speed_reference():
     # The gate recovers all the way back to NORMAL later in the episode --
     # evidence the HALT branch leaves the closed loop stable, not stuck.
     assert "NORMAL" in set(df["mode"].iloc[halt_rows.index[-1]:])
+
+
+def test_fallback_prevents_payload_shift_fall():
+    """FallbackParams (softer HALT gains + KF Q inflation outside NORMAL), ported
+    from the firmware: seed 1's payload shift falls without it and is held upright
+    with it (nonlinear plant). The gate trips at the same time either way."""
+    from experiments.run_batch import DISTURBANCE_SCENARIOS
+
+    fn, T, _, psi0 = DISTURBANCE_SCENARIOS["payload_shift"]
+    runs = {
+        fb: run_episode(EpisodeConfig(ControllerType.NIS_GATE, T, x0_psi_deg=psi0, disturbance=fn, fallback=fb), seed=1)
+        for fb in (False, True)
+    }
+    assert runs[False]["fallen"].any()
+    assert not runs[True]["fallen"].any()
+    assert abs(runs[True]["psi"]).max() < np.radians(15.0)
+    first_trip = {fb: df.loc[df["mode"] != "NORMAL", "t"].iloc[0] for fb, df in runs.items()}
+    assert first_trip[False] == first_trip[True]

@@ -1,0 +1,4 @@
+controller,fall_rate,false_fallback_fraction,mean_detection_delay_s,mean_progress_m,corridor_progress_m,corridor_false_fallback_fraction,corridor_fall_rate
+naive,0.07143,0,,-0.02777,0.72,0,0
+nis_gate,0,0,0.7655,-0.007863,0.72,0,0
+tilt_threshold,0,0,1.007,-0.008524,0.72,0,0

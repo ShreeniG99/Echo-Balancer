@@ -293,3 +293,19 @@ step if quantum work is deferred further.
   gate, `run.py` balance-only path, `run.py` corridor path, `metrics.py`,
   `run_batch.py`) plus this task's docs commit are the full history added on
   top of `master`'s `96f914b` in this worktree/branch.
+
+## 2026-10-08 — Wokwi firmware (extra, off the §14 build order)
+`firmware/` (PlatformIO + `diagram.json` + `wokwi.toml`): ESP32 runs KF+NIS+gates at 200 Hz against a virtual linear robot; faults via MPU6050 sliders, KY-040 knob, serial keys. Host-verified vs Python (`tests/test_firmware_core.py`, 14 tests; full suite 140 pass). **Not yet built for ESP32 or run in Wokwi** (sandbox blocks PlatformIO/Wokwi); `main.cpp` only syntax-checked against stubs, `diagram.json` pin names unverified. See `firmware/README.md`. Steps 7 (qubo) and 8 (plots/animate) remain next.
+Update (same day): firmware now closes the gate->control loop (speed-servo LQR, NORMAL 0.3 rad/s / CAUTIOUS x0.4 softer gains / HALT 0, gains generated from params). Push is detected 0/3 seeds; payload shift is flagged but the nominal LQR can't stabilise it (falls 3/3). `analysis/plot_firmware_gate.py` -> `docs/firmware_gate_comparison.png`; matplotlib added to pyproject. Beginner run guide: `firmware/WOKWI_GUIDE.md`. Still unverified in real Wokwi.
+Update 2: target board ESP32-S3 (pins re-mapped). Payload shift now detected 10/10 and survived 10/10 in the firmware (softer HALT gains + KF Q x100, `FallbackParams`); earlier "LQR can't stabilise it" claim was wrong and is corrected in `firmware/README.md`. 146 tests pass. Still not run in real Wokwi.
+
+## 2026-10-08 — Build-order steps 7 and 8 complete
+- `quantum/formulation.py`, `quantum/cost_table.py`, `quantum/qubo.py` (+ `tests/test_qubo.py`). Results: `docs/results/qubo_*`.
+- `analysis/plots.py` and `analysis/animate.py` write the figures in `docs/figures/` and the metrics CSVs in `docs/results/`.
+- `sim/run.py` changes:
+  - fallback (default on);
+  - `gate_params` override;
+  - side-ultrasonic dropout hold (`sim/sensors.py::hold_on_dropout`).
+- `sim/params.py` adds `FallbackParams` and `QuboParams`.
+- New dependencies: matplotlib, qiskit 2.5.2, qiskit-optimization 0.7.0, qiskit-aer 0.17.2.
+- Full write-up: `docs/RESULTS.md`. Tests: 174 pass.

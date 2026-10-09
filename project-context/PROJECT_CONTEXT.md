@@ -135,3 +135,14 @@ Python ≥3.11 (dev venv currently 3.12.8), `uv` for env/deps, `numpy`, `scipy`
 4. Prefer `graphify query "<question>"` / `graphify explain "<symbol>"` /
    `graphify path "<A>" "<B>"` over grepping the whole repo for code-structure
    questions (see [MODEL_HANDOFF.md](MODEL_HANDOFF.md)).
+
+## 2026-10-08 additions
+- `quantum/formulation.py`: exact HUBO, reduced to a QUBO.
+- `quantum/cost_table.py`: re-simulation cost table.
+- `quantum/qubo.py`: exhaustive search vs GroverOptimizer.
+- `analysis/plots.py`, `analysis/animate.py`, `analysis/plot_firmware_gate.py`: figures and animation.
+- `firmware/`: ESP32-S3 / Wokwi, with a C++ core cross-checked against Python by `tests/test_firmware_core.py`.
+- Dependencies added: matplotlib, qiskit==2.5.2, qiskit-optimization==0.7.0, qiskit-aer==0.17.2.
+- Glossary:
+  - `J_detect` = spec J + (1 - detection_rate). A reported variant, not the spec.
+  - "grid v1/v2" = threshold grids. v1 was flat; v2 is the current grid.

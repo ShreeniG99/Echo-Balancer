@@ -8,6 +8,10 @@ dependencies = [
     "pandas>=2.2",
     "pyarrow>=18.0",
     "joblib>=1.4",
+    "matplotlib>=3.11.2",
+    "qiskit==2.5.2",
+    "qiskit-optimization==0.7.0",
+    "qiskit-aer==0.17.2",
 ]
 
 [dependency-groups]

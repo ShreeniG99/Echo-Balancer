@@ -414,3 +414,83 @@ def default_speed_servo_params_cautious() -> SpeedServoParams:
     "Design decision 5" for the full pole comparison.
     """
     return SpeedServoParams(Q_theta=0.2, Q_psi=200.0, Q_theta_dot=0.2, Q_psi_dot=0.2, Q_integral=2.0, R=1e2)
+
+
+@dataclass(frozen=True)
+class FallbackParams:
+    """Estimator behaviour once the NIS gate leaves NORMAL (firmware).
+
+    The KF always uses the nominal model (CLAUDE.md section 8), so under a
+    plant mismatch such as the payload shift its estimate-based feedback
+    loop goes unstable even though true-state feedback is stable. On leaving
+    NORMAL the KF process noise Q is multiplied by q_inflation so it trusts
+    the sensors over its (now wrong) model. Empirical: x10 recovers (max
+    |psi| ~9.7 deg), x100 recovers (~6.9 deg), x1000 and above overshoot and
+    fall -- see firmware/README.md. Used by firmware only; sim/run.py does
+    not apply it yet.
+    """
+
+    q_inflation: float
+
+
+def default_fallback_params() -> FallbackParams:
+    return FallbackParams(q_inflation=100.0)
+
+
+@dataclass(frozen=True)
+class QuboParams:
+    """Offline gate-threshold selection (CLAUDE.md section 13).
+
+    Candidate grid: tau1 = tau1_level * N, tau2 = tau2_level * N (levels are
+    per-sample mean NIS, so one level means the same thing at any window N),
+    N, T_dwell. Index bits (little-endian): 0-1 tau1 level, 2-3 tau2 level,
+    4 N, 5 T_dwell -> 64 candidates. Codes with tau1 >= tau2 are infeasible.
+    Hysteresis follows the default gate's shape: tau1_exit = tau1_exit_ratio
+    * tau1, tau2_exit = tau1. The defaults (tau1=1300, tau2=1800, N=200,
+    T_dwell=0.5) are candidate (2, 1, 1, 1).
+
+    Cost J = w_fall * fall_rate + w_false * false_fallback + w_progress *
+    (1 - progress), exactly as specified; progress is the corridor distance
+    relative to the naive controller on the same seeds.
+
+    Grid history: v1 used tau1 levels (5.0, 6.0, 6.5, 7.5) / tau2 (6, 9, 11,
+    14) with 30 s nominal runs; after the ultrasonic-dropout fix every v1
+    candidate scored J = 0 (no level reaches the nominal epsilon range: mean
+    NIS 2.89, worst 60 s window level 4.0-4.7 at N=200, 4.8-5.2 at N=100), so
+    the grid was widened down into that range (docs/results/
+    qubo_cost_table_grid_v1.csv keeps the flat v1 table).
+    """
+
+    tau1_levels: tuple[float, ...]
+    tau2_levels: tuple[float, ...]
+    N_values: tuple[int, ...]
+    T_dwell_values: tuple[float, ...]
+    tau1_exit_ratio: float
+    w_fall: float
+    w_false: float
+    w_progress: float
+    seeds: tuple[int, ...]
+    nominal_T: float     # s, nominal balance + corridor episode length
+    grover_seeds: tuple[int, ...]  # independent GroverOptimizer runs (it is stochastic)
+    grover_iterations: int         # GroverOptimizer num_iterations (no-improvement patience)
+    w_detect_variant: float        # NOT the spec J: weight of (1 - detection_rate) in the labelled
+                                   # "detection-weighted" variant, reported because the spec J ties
+                                   # (falls are 0 for every candidate once the fallback is on)
+
+
+def default_qubo_params() -> QuboParams:
+    return QuboParams(
+        tau1_levels=(3.5, 4.5, 5.0, 6.5),
+        tau2_levels=(5.5, 7.0, 9.0, 14.0),
+        N_values=(100, 200),
+        T_dwell_values=(0.25, 0.5),
+        tau1_exit_ratio=0.8,
+        w_fall=10.0,
+        w_false=1.0,
+        w_progress=1.0,
+        seeds=(0, 1, 2),
+        nominal_T=60.0,
+        grover_seeds=(0, 1, 2, 3, 4),
+        grover_iterations=8,
+        w_detect_variant=1.0,
+    )
