@@ -14,6 +14,8 @@ static const double ECHO_TAU2 = 1800.0;
 static const double ECHO_TAU1_EXIT = 1040.0;
 static const double ECHO_TAU2_EXIT = 1300.0;
 static const double ECHO_T_DWELL = 0.5;  // s
+static const int ECHO_SHORT_N = 10;  // short-window spike detector (0 = off)
+static const double ECHO_SHORT_TAU = 125.0;
 static const double ECHO_TILT_PSI1 = 0.0087;
 static const double ECHO_TILT_PSI2 = 0.0175;
 static const double ECHO_TILT_PSI1_EXIT = 0.006;

@@ -41,5 +41,5 @@ Step-by-step first-run instructions: [WOKWI_GUIDE.md](WOKWI_GUIDE.md). Gate comp
 - **Not detected / honest limits:** the 0.1 rad/s push is **not** detected on any of 10 seeds (epsilon peaks ~1150 < tau1 = 1300 for ~1 s); the robot recovers by itself. With Q inflation the gyro-bias step now lands in CAUTIOUS and returns to NORMAL once the KF has absorbed the bias, instead of staying in HALT.
 - **Python parity:** `sim/run.py` still uses the nominal gain in HALT and no Q inflation (step-6 "Design decision 6"). The fallback is firmware-only for now; the batch metrics in Python are unchanged.
 
-## Not in the firmware (yet)
-The opt-in short-window spike detector (`sim.params.default_short_window_gate_params`) is Python-only. Port it if it is made the default.
+## Short-window spike detector
+Since 2026-10-09 the default gate includes a 10-sample (50 ms) spike detector (`ECHO_SHORT_N`, `ECHO_SHORT_TAU`, generated from `sim.params.default_gate_params`). It enters CAUTIOUS only. In Wokwi the `p` (push) key should now turn the LED yellow. `tests/test_firmware_core.py` checks it matches Python mode-for-mode.

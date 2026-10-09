@@ -42,9 +42,9 @@
     "semantic_hash": ""
   },
   "sim/params.py": {
-    "mtime": 1791522082.0787518,
-    "seen": 1791522346.2362635,
-    "ast_hash": "9493c69dbfe91d42b6e8e6d83fd08cb8",
+    "mtime": 1791526068.8454382,
+    "seen": 1791532268.545544,
+    "ast_hash": "d6db0c72061081a2ed7bcb252e94c173",
     "semantic_hash": ""
   },
   "sim/plant.py": {
@@ -90,9 +90,9 @@
     "semantic_hash": ""
   },
   "tests/test_params.py": {
-    "mtime": 1791517167.7689264,
-    "seen": 1791522346.2362876,
-    "ast_hash": "1cf46c1560ef66c76bce81de582bd94c",
+    "mtime": 1791526068.846189,
+    "seen": 1791532268.5455644,
+    "ast_hash": "277c9805abd61584d263d9e33b117ba5",
     "semantic_hash": ""
   },
   "tests/test_plant.py": {
@@ -114,9 +114,9 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1791465220.942209,
-    "seen": 1791516918.0349662,
-    "ast_hash": "437552792b4589fdaf958786963b3846",
+    "mtime": 1791526243.8276076,
+    "seen": 1791532268.5455778,
+    "ast_hash": "e053e057f41beca61bb5cd844d886a15",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-09-19-linearize-lqr-step2.md": {
@@ -144,15 +144,15 @@
     "semantic_hash": ""
   },
   "project-context/CURRENT_STATE.md": {
-    "mtime": 1791522240.8397272,
-    "seen": 1791522346.2363234,
-    "ast_hash": "6bde9bb4adb30f3c84e7184af1c35bcc",
+    "mtime": 1791532159.6630394,
+    "seen": 1791532268.5455923,
+    "ast_hash": "432a1ab2580fbb90e572e66bffed0ac7",
     "semantic_hash": ""
   },
   "project-context/DECISIONS.md": {
-    "mtime": 1791517098.8929281,
-    "seen": 1791522346.2363248,
-    "ast_hash": "962cccc45e34a0bd69dad1ac1f18ba21",
+    "mtime": 1791526254.8097098,
+    "seen": 1791532268.5455933,
+    "ast_hash": "6eebb31d577f5a29894f0db4ec7585ab",
     "semantic_hash": ""
   },
   "project-context/FAILED_APPROACHES.md": {
@@ -162,15 +162,15 @@
     "semantic_hash": ""
   },
   "project-context/MODEL_HANDOFF.md": {
-    "mtime": 1791522240.8392997,
-    "seen": 1791522346.2363286,
-    "ast_hash": "b030e36f4433b7420dc44ffb2fb30294",
+    "mtime": 1791532159.6622682,
+    "seen": 1791532268.5455956,
+    "ast_hash": "b5b89dd79757a419fc9b918716187b60",
     "semantic_hash": ""
   },
   "project-context/OPEN_PROBLEMS.md": {
-    "mtime": 1791522240.8208106,
-    "seen": 1791522346.23633,
-    "ast_hash": "ac2d64d4c68c28384591bf086fa19a40",
+    "mtime": 1791532159.661299,
+    "seen": 1791532268.545597,
+    "ast_hash": "a2031d87f84888a3fabe6ee2372e7ed5",
     "semantic_hash": ""
   },
   "project-context/PROJECT_CONTEXT.md": {
@@ -204,9 +204,9 @@
     "semantic_hash": ""
   },
   "tests/test_gate.py": {
-    "mtime": 1791517061.7382202,
-    "seen": 1791522346.2362814,
-    "ast_hash": "4f3254ddc5ca2e74a581b17eff4726ae",
+    "mtime": 1791526068.846859,
+    "seen": 1791532268.5455587,
+    "ast_hash": "b1664308480d6cb4cd7ef807076c33a1",
     "semantic_hash": ""
   },
   "tests/test_wall_following.py": {
@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "tests/test_run.py": {
-    "mtime": 1791474443.1749215,
-    "seen": 1791516918.0349567,
-    "ast_hash": "7650a51427e3c2b01f2ca8340bfe5f20",
+    "mtime": 1791526191.417054,
+    "seen": 1791532268.545568,
+    "ast_hash": "098ac489b14e53bad672654b47295bc5",
     "semantic_hash": ""
   },
   "tests/test_run_batch.py": {
@@ -306,9 +306,9 @@
     "semantic_hash": ""
   },
   "docs/results/qubo_report.json": {
-    "mtime": 1791522146.1115212,
-    "seen": 1791522346.236214,
-    "ast_hash": "1faf5cc7f86de6564971cebe1c90d1a9",
+    "mtime": 1791531733.4248931,
+    "seen": 1791532268.5455031,
+    "ast_hash": "b453a6330f185ab8a653596caf7f2a9c",
     "semantic_hash": ""
   },
   "docs/results/qubo_report_3seeds.json": {
@@ -330,15 +330,15 @@
     "semantic_hash": ""
   },
   "firmware/include/echo_core.hpp": {
-    "mtime": 1791466824.693137,
-    "seen": 1791516918.0349078,
-    "ast_hash": "771c03d4b7bc9ca3a63e3a58579c0cd7",
+    "mtime": 1791526068.849223,
+    "seen": 1791532268.545517,
+    "ast_hash": "9f45cdb17ea925e1aa2988b9c8d01adf",
     "semantic_hash": ""
   },
   "firmware/include/echo_params.h": {
-    "mtime": 1791522253.3212543,
-    "seen": 1791522346.2362316,
-    "ast_hash": "4a404886d7cd76728c0c722dc2226a74",
+    "mtime": 1791532170.2655745,
+    "seen": 1791532268.5455184,
+    "ast_hash": "cf1f28bc4376182bfeccde7f7343b942",
     "semantic_hash": ""
   },
   "firmware/src/main.cpp": {
@@ -360,9 +360,9 @@
     "semantic_hash": ""
   },
   "firmware/tools/gen_params_header.py": {
-    "mtime": 1791466824.6928608,
-    "seen": 1791516918.0349133,
-    "ast_hash": "2213898b26b2dc48d7df3764640aa384",
+    "mtime": 1791526068.8487785,
+    "seen": 1791532268.5455241,
+    "ast_hash": "1fe336db5faf4b1bcc3ad67f0a241fc7",
     "semantic_hash": ""
   },
   "quantum/__init__.py": {
@@ -372,9 +372,9 @@
     "semantic_hash": ""
   },
   "quantum/cost_table.py": {
-    "mtime": 1791475365.4904354,
-    "seen": 1791516918.0349176,
-    "ast_hash": "3e32234fcd6a1e0d65e97dc8c7c4ecb8",
+    "mtime": 1791526068.848223,
+    "seen": 1791532268.5455291,
+    "ast_hash": "894d9f5b00ad2090caae303da2536dd3",
     "semantic_hash": ""
   },
   "quantum/formulation.py": {
@@ -402,15 +402,15 @@
     "semantic_hash": ""
   },
   "docs/RESULTS.md": {
-    "mtime": 1791522225.4103065,
-    "seen": 1791522346.2363067,
-    "ast_hash": "cac130d7aaaf40318a47a13ecf3e4079",
+    "mtime": 1791532146.841575,
+    "seen": 1791532268.5455804,
+    "ast_hash": "4dac4c8ac168e7318713b559e82a4ef0",
     "semantic_hash": ""
   },
   "firmware/README.md": {
-    "mtime": 1791522240.8400867,
-    "seen": 1791522346.2363179,
-    "ast_hash": "89655f9cbd67e0229d7563bac527aad8",
+    "mtime": 1791526215.6449842,
+    "seen": 1791532268.5455887,
+    "ast_hash": "def92c307b5bd1203a230a1c285c0983",
     "semantic_hash": ""
   },
   "firmware/WOKWI_GUIDE.md": {
@@ -420,33 +420,33 @@
     "semantic_hash": ""
   },
   "docs/figures/detection_and_falls.png": {
-    "mtime": 1791474702.091019,
-    "seen": 1791516918.034989,
-    "ast_hash": "ee0a9ac16eaf27fceee792ce941664ee",
+    "mtime": 1791531997.1415784,
+    "seen": 1791532268.5455997,
+    "ast_hash": "556d75924008d35f90fde08505cfc429",
     "semantic_hash": ""
   },
   "docs/figures/episode_accel_noise_fault.png": {
-    "mtime": 1791474703.567019,
-    "seen": 1791516918.03499,
-    "ast_hash": "85d0fa7a36f731aeff776dee05b9b07c",
+    "mtime": 1791531998.9415784,
+    "seen": 1791532268.5456007,
+    "ast_hash": "3897b1bbc331e7b1d5c2861a09f06660",
     "semantic_hash": ""
   },
   "docs/figures/episode_payload_shift.png": {
-    "mtime": 1791474702.871019,
-    "seen": 1791516918.034991,
-    "ast_hash": "15c2d37f5763af21961b2d835810acb2",
+    "mtime": 1791531998.1455784,
+    "seen": 1791532268.5456018,
+    "ast_hash": "e895920b281e33faebb119bff0353a94",
     "semantic_hash": ""
   },
   "docs/figures/episode_push.png": {
-    "mtime": 1791474704.139019,
-    "seen": 1791516918.0349922,
-    "ast_hash": "9b4634239b322154f44c0f5fefbc5301",
+    "mtime": 1791531999.7695782,
+    "seen": 1791532268.545603,
+    "ast_hash": "b3944a0e07737534ee9490bf0fa10080",
     "semantic_hash": ""
   },
   "docs/figures/threshold_sensitivity.png": {
-    "mtime": 1791522157.3048124,
-    "seen": 1791522346.236339,
-    "ast_hash": "b18665c7a3a044fc44a11c0e038e04ff",
+    "mtime": 1791532001.2495782,
+    "seen": 1791532268.545604,
+    "ast_hash": "113d7de74c0d160a964128e4286f0713",
     "semantic_hash": ""
   },
   "docs/firmware_gate_comparison.png": {
@@ -468,9 +468,9 @@
     "semantic_hash": ""
   },
   "experiments/short_window_eval.py": {
-    "mtime": 1791517077.9009285,
-    "seen": 1791522346.2362258,
-    "ast_hash": "7cfcae8e31e95d11654207bd287b669a",
+    "mtime": 1791526068.8473434,
+    "seen": 1791532268.5455139,
+    "ast_hash": "8f638e107fec297111b3516789296163",
     "semantic_hash": ""
   },
   ".github/workflows/tests.yml": {

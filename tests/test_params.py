@@ -113,6 +113,8 @@ def test_default_gate_params():
     assert gp.tau1_exit == 1040.0
     assert gp.tau2_exit == 1300.0
     assert gp.T_dwell == 0.5
+    assert gp.short_N == 10
+    assert gp.short_tau == 125.0
 
 
 def test_gate_params_is_frozen():

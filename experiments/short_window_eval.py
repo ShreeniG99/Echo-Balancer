@@ -1,5 +1,5 @@
-"""Held-out evaluation of the opt-in short-window spike detector
-(sim.params.default_short_window_gate_params) against the default NIS gate.
+"""Held-out evaluation of the short-window spike detector: the default NIS gate
+(which includes it since 2026-10-09) against the long-window-only gate.
 
 The short-window threshold was calibrated on run_batch seeds 0-9, so this
 uses seeds 100-109 only. Every section 8 scenario is run (balance-only), plus
@@ -16,12 +16,12 @@ import pandas as pd
 from joblib import Parallel, delayed
 
 from experiments.run_batch import DISTURBANCE_SCENARIOS
-from sim.params import default_gate_params, default_short_window_gate_params
+from sim.params import default_gate_params, long_window_only_gate_params
 from sim.run import ControllerType, EpisodeConfig, run_episode
 
 OUT = Path(__file__).resolve().parents[1] / "docs" / "results" / "short_window_heldout.csv"
 HELDOUT_SEEDS = tuple(range(100, 110))
-GATES = {"default": default_gate_params(), "short_window": default_short_window_gate_params()}
+GATES = {"long_window_only": long_window_only_gate_params(), "default_with_short_window": default_gate_params()}
 
 
 def _one(gate_name: str, scenario: str, wall_following: bool, seed: int) -> dict:

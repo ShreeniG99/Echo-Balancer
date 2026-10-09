@@ -1,7 +1,7 @@
 instance,cost,candidates,feasible,distinct_costs,optimal_set_size,classical_optimum,QUBO_exact,qubo_vars,total_qubits,grover_same_optimum,grover_mean_oracle_calls,grover_mean_wall_s,classical_evaluations
 full_6bit,J,64,60,11,20,7,True,18,29,not run: 29 qubits > 24 simulable,,,60
-tau1_tau2_N_5bit,J,32,30,6,10,39,True,7,16,5/5,16.6,2.183,30
-tau1_tau2_4bit,J,16,15,3,7,50,True,6,15,5/5,17.2,1.45,15
-full_6bit_detect,J_detect,64,60,13,4,1,True,18,31,not run: 31 qubits > 24 simulable,,,60
-tau1_tau2_N_5bit_detect,J_detect,32,30,8,4,33,True,8,18,5/5,21.8,7.082,30
-tau1_tau2_4bit_detect,J_detect,16,15,4,4,48,True,6,13,5/5,17.2,1.239,15
+tau1_tau2_N_5bit,J,32,30,6,10,39,True,7,16,5/5,18,2.344,30
+tau1_tau2_4bit,J,16,15,3,7,50,True,6,15,5/5,16,1.443,15
+full_6bit_detect,J_detect,64,60,13,8,18,True,18,29,not run: 29 qubits > 24 simulable,,,60
+tau1_tau2_N_5bit_detect,J_detect,32,30,8,4,50,True,8,17,5/5,19.8,4.395,30
+tau1_tau2_4bit_detect,J_detect,16,15,4,4,50,True,6,14,5/5,21,1.445,15

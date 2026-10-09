@@ -372,10 +372,10 @@ def test_tilt_gate_halt_to_cautious_exit():
     assert state.time_in_mode == 0.0
 
 
-def test_short_window_is_off_by_default():
-    from sim.params import default_gate_params
+def test_long_window_only_gate_ignores_short_spike():
+    from sim.params import long_window_only_gate_params
 
-    gp = default_gate_params()
+    gp = long_window_only_gate_params()
     assert gp.short_N == 0
     state = initial_gate_state()
     for _ in range(gp.N):
@@ -387,9 +387,9 @@ def test_short_window_is_off_by_default():
 
 
 def test_short_window_spike_enters_cautious_never_halt():
-    from sim.params import default_short_window_gate_params
+    from sim.params import default_gate_params
 
-    gp = default_short_window_gate_params()
+    gp = default_gate_params()
     state = initial_gate_state()
     for _ in range(gp.N):
         state, _ = step_gate(state, 3.0, 0.005, gp)
@@ -403,9 +403,9 @@ def test_short_window_spike_enters_cautious_never_halt():
 def test_short_window_respects_dwell():
     from dataclasses import replace
 
-    from sim.params import default_short_window_gate_params
+    from sim.params import default_gate_params
 
-    gp = replace(default_short_window_gate_params(), T_dwell=1.0)
+    gp = replace(default_gate_params(), T_dwell=1.0)
     state = initial_gate_state()
     for _ in range(gp.short_N):  # spike inside the first 1.0 s: dwell not yet elapsed
         state, _ = step_gate(state, 1000.0, 0.005, gp)

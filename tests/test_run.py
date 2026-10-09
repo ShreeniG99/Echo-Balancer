@@ -239,14 +239,13 @@ def test_corridor_episode_makes_forward_progress_and_stays_in_corridor():
     assert not df["right_dist"].isna().any()
 
 
-def test_corridor_push_disturbance_is_a_known_miss_for_the_nis_gate():
-    """Documents, rather than hides, the plan doc's "Design decision 1"
-    finding: push-type disturbances are not reliably detected once the
-    control law is design_lqr_speed_servo, even at the calibrated-safe
-    corridor speed. Verified pre-plan: seed=42, max epsilon in the
-    detection window = 1085.51, under tau1=1300 -- MISSED. This is an
-    inherited, pre-existing thin margin (design_lqr_balance's own push
-    margin was already only 3.5% over tau1), not a step-6 regression."""
+def test_corridor_push_missed_by_long_window_only_caught_by_short_window():
+    """The plan doc's "Design decision 1" finding, kept on record: with the long window alone, a push
+    during corridor driving is MISSED (seed=42: max epsilon in the detection window 1085.51 < tau1=1300;
+    a thin, inherited margin, not a step-6 regression). The short-window spike detector, part of the
+    default gate since 2026-10-09, catches the same push on the same seed."""
+    from sim.params import default_gate_params, long_window_only_gate_params
+
     dp = default_disturbance_params()
 
     def apply_push(t, x, bg, p, sp):
@@ -254,11 +253,14 @@ def test_corridor_push_disturbance_is_a_known_miss_for_the_nis_gate():
         x[4] = push_psi_dot_kick(x[4], t, dp.push_onset, 0.005, dp.push_magnitude)
         return x, bg, p, sp, dp.battery_droop_v_nominal
 
-    config = EpisodeConfig(controller=ControllerType.NIS_GATE, T=20.0, wall_following=True, disturbance=apply_push)
-    df = run_episode(config, seed=42)
+    def latency(gate_p):
+        config = EpisodeConfig(controller=ControllerType.NIS_GATE, T=20.0, wall_following=True,
+                               disturbance=apply_push, gate_params=gate_p)
+        return _first_non_normal_latency(run_episode(config, seed=42), dp.push_onset, dp.detection_window_s)
 
-    latency = _first_non_normal_latency(df, dp.push_onset, dp.detection_window_s)
-    assert latency is None
+    assert latency(long_window_only_gate_params()) is None
+    caught = latency(default_gate_params())
+    assert caught is not None and caught < 0.1
 
 
 def test_cautious_mode_scales_down_corridor_speed_reference():

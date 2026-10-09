@@ -383,3 +383,9 @@ Root cause of nominal corridor falls (pre-existing since step 5/6: 60 s nominal 
 
 ## 2026-10-09 — Threshold-selection cost: spec J is official; J_detect is a labelled extra (user's choice "C")
 CLAUDE.md section 13's J (falls, false fallback, progress) stays the official selection cost. Because J does not reward detection and ties heavily once nothing falls, `J_detect = J + w_detect_variant*(1 - detection_rate)` (weight 1, `QuboParams.w_detect_variant`) is reported alongside, always labelled as NOT the spec J. Reason: changing the rule after seeing results invites "you picked the rule that gave a nicer answer". If the user later wants J_detect official: fix the weight first, update CLAUDE.md, re-run on fresh seeds, then report.
+
+## 2026-10-09 — Short-window spike detector ON by default (user decision "A")
+`default_gate_params()` now includes short_N=10, short_tau=125 (Python gate, cost-table candidates, firmware via generated `ECHO_SHORT_N/ECHO_SHORT_TAU`). Basis: held-out seeds 100-109 showed push 10/10 (vs 7/10), battery-droop companion push 10/10 (vs 0/10), 0 false alarms in 20 x 60 s nominal runs, 0 falls. `long_window_only_gate_params()` keeps the old gate for comparison. All section 12/13 results were re-run with it.
+
+## 2026-10-09 — CLAUDE.md brought in line with the code (user decision "B")
+Section 4 layout lists the new modules; section 10 gains dated notes for the tau calibration (2026-09-21 decision), the short-window detector and the fallback. The original spec text is kept; additions are marked with dates.
